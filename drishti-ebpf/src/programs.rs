@@ -1,6 +1,6 @@
 #![allow(unsafe_code)]
 
-use aya_bpf::{
+use aya_ebpf::{
     helpers::{bpf_get_current_comm, bpf_get_current_pid_tgid, bpf_ktime_get_ns},
     macros::{map, tracepoint},
     maps::{HashMap, RingBuf},
