@@ -81,7 +81,15 @@ gh issue edit --repo singh-sumit/drishti 39 --title 'Docs: integration guides (P
 gh issue edit --repo singh-sumit/drishti 40 --title 'Docs: GitHub Pages workflow and release checks' --body-file 'internal-docs/issues/generated/DRISHTI-136.md' --milestone 'v0.4 Drishti QEMU CI'
 gh issue edit --repo singh-sumit/drishti 41 --title 'Docs: README + developer workflow + rustdoc reference linking' --body-file 'internal-docs/issues/generated/DRISHTI-137.md' --milestone 'v0.4 Drishti QEMU CI'
 gh issue edit --repo singh-sumit/drishti 42 --title 'Docs: closeout, validation evidence, issue sync finalization' --body-file 'internal-docs/issues/generated/DRISHTI-138.md' --milestone 'v0.4 Drishti QEMU CI'
-gh issue create --repo singh-sumit/drishti --title 'Docs: Mermaid compatibility hardening and parser validation' --body-file 'internal-docs/issues/generated/DRISHTI-149.md' --label 'docs' --label 'testing' --label 'v0.4' --milestone 'v0.4 Drishti QEMU CI'
+gh issue edit --repo singh-sumit/drishti 44 --title 'Docs: v0.4 documentation workstream umbrella' --body-file 'internal-docs/issues/generated/DRISHTI-149.md' --milestone 'v0.4 Drishti QEMU CI'
+gh issue edit --repo singh-sumit/drishti 53 --title 'QEMU CI architecture + kernel/BTF prerequisites' --body-file 'internal-docs/issues/generated/DRISHTI-150.md' --milestone 'v0.4 Drishti QEMU CI'
+gh issue edit --repo singh-sumit/drishti 54 --title 'QEMU image/bootstrap automation' --body-file 'internal-docs/issues/generated/DRISHTI-151.md' --milestone 'v0.4 Drishti QEMU CI'
+gh issue edit --repo singh-sumit/drishti 55 --title 'QEMU harness in xtask' --body-file 'internal-docs/issues/generated/DRISHTI-152.md' --milestone 'v0.4 Drishti QEMU CI'
+gh issue edit --repo singh-sumit/drishti 56 --title 'Privileged smoke suite execution inside QEMU' --body-file 'internal-docs/issues/generated/DRISHTI-153.md' --milestone 'v0.4 Drishti QEMU CI'
+gh issue edit --repo singh-sumit/drishti 57 --title 'GitHub Actions QEMU workflow job' --body-file 'internal-docs/issues/generated/DRISHTI-154.md' --milestone 'v0.4 Drishti QEMU CI'
+gh issue edit --repo singh-sumit/drishti 58 --title 'QEMU artifacts/logging and failure triage' --body-file 'internal-docs/issues/generated/DRISHTI-155.md' --milestone 'v0.4 Drishti QEMU CI'
+gh issue edit --repo singh-sumit/drishti 59 --title 'QEMU docs and runbook' --body-file 'internal-docs/issues/generated/DRISHTI-156.md' --milestone 'v0.4 Drishti QEMU CI'
+gh issue edit --repo singh-sumit/drishti 60 --title 'v0.4 closeout and acceptance evidence' --body-file 'internal-docs/issues/generated/DRISHTI-157.md' --milestone 'v0.4 Drishti QEMU CI'
 # parent tasklists and dependency links are applied during --apply
 # close when mapped: DRISHTI-001 -> gh issue close --repo singh-sumit/drishti <issue-number>
 # close when mapped: DRISHTI-010 -> gh issue close --repo singh-sumit/drishti <issue-number>
@@ -110,6 +118,7 @@ gh issue create --repo singh-sumit/drishti --title 'Docs: Mermaid compatibility 
 # close when mapped: DRISHTI-122 -> gh issue close --repo singh-sumit/drishti <issue-number>
 # close when mapped: DRISHTI-123 -> gh issue close --repo singh-sumit/drishti <issue-number>
 # close when mapped: DRISHTI-124 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-093 -> gh issue close --repo singh-sumit/drishti <issue-number>
 # close when mapped: DRISHTI-130 -> gh issue close --repo singh-sumit/drishti <issue-number>
 # close when mapped: DRISHTI-131 -> gh issue close --repo singh-sumit/drishti <issue-number>
 # close when mapped: DRISHTI-132 -> gh issue close --repo singh-sumit/drishti <issue-number>
@@ -119,3 +128,12 @@ gh issue create --repo singh-sumit/drishti --title 'Docs: Mermaid compatibility 
 # close when mapped: DRISHTI-136 -> gh issue close --repo singh-sumit/drishti <issue-number>
 # close when mapped: DRISHTI-137 -> gh issue close --repo singh-sumit/drishti <issue-number>
 # close when mapped: DRISHTI-138 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-149 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-150 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-151 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-152 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-153 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-154 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-155 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-156 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-157 -> gh issue close --repo singh-sumit/drishti <issue-number>

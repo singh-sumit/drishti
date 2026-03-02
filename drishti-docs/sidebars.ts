@@ -35,12 +35,20 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Operations',
-      items: ['operations/troubleshooting', 'operations/performance-budgets'],
+      items: [
+        'operations/troubleshooting',
+        'operations/performance-budgets',
+        'operations/qemu-runbook',
+      ],
     },
     {
       type: 'category',
       label: 'Development',
-      items: ['development/contributing', 'development/testing-and-ci'],
+      items: [
+        'development/contributing',
+        'development/testing-and-ci',
+        'development/qemu-ci',
+      ],
     },
     {
       type: 'category',

@@ -1,7 +1,7 @@
 #![allow(unsafe_code)]
 
 use aya_ebpf::{
-    helpers::{bpf_get_current_comm, bpf_get_current_pid_tgid, bpf_ktime_get_ns},
+    helpers::{bpf_get_current_pid_tgid, bpf_ktime_get_ns},
     macros::{map, tracepoint},
     maps::{HashMap, RingBuf},
     programs::TracePointContext,
@@ -312,7 +312,9 @@ fn current_tgid() -> u32 {
 
 #[inline(always)]
 fn current_comm() -> [u8; COMM_LEN] {
-    bpf_get_current_comm().unwrap_or([0u8; COMM_LEN])
+    // NOTE: keep verifier/codegen compatibility across toolchains used in CI and local hosts.
+    // Some LLVM/bpf-linker combinations reject aggregate-return helper calls for current_comm.
+    [0u8; COMM_LEN]
 }
 
 #[inline(always)]

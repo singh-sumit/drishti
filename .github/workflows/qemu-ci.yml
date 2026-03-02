@@ -1,0 +1,79 @@
+name: qemu-ci
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      arch:
+        description: "Architecture lane to run"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - x86_64
+          - aarch64
+
+permissions:
+  contents: read
+
+jobs:
+  qemu-x86_64:
+    if: github.event_name != 'workflow_dispatch' || inputs.arch == 'all' || inputs.arch == 'x86_64'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install build and QEMU dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 qemu-system-arm cpio gzip file clang llvm lld
+      - name: Install nightly rust-src
+        run: rustup toolchain install nightly --profile minimal --component rust-src
+      - name: Install bpf-linker
+        run: cargo +nightly install bpf-linker
+      - name: Run x86_64 QEMU CI lane
+        run: cargo run -p xtask -- qemu ci --arch x86_64 --kvm auto --timeout-secs 240
+      - name: Upload x86_64 QEMU artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-x86_64-artifacts
+          path: target/qemu/x86_64/
+
+  qemu-aarch64:
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && (inputs.arch == 'all' || inputs.arch == 'aarch64'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install build and QEMU dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 qemu-system-arm cpio gzip file clang llvm lld
+      - name: Install nightly rust-src
+        run: rustup toolchain install nightly --profile minimal --component rust-src
+      - name: Install bpf-linker and cross
+        run: |
+          cargo +nightly install bpf-linker
+          cargo install cross --locked
+      - name: Fetch arm64 kernel package
+        run: |
+          sudo dpkg --add-architecture arm64
+          sudo apt-get update
+          apt-get download linux-image-virtual:arm64
+          echo "DRISHTI_QEMU_AARCH64_KERNEL_DEB=$(pwd)/$(ls -1 linux-image-virtual_*_arm64.deb | head -n 1)" >> "$GITHUB_ENV"
+      - name: Run aarch64 QEMU CI lane
+        env:
+          DRISHTI_QEMU_BUILD_TOOL: cross
+        run: cargo run -p xtask -- qemu ci --arch aarch64 --kvm off --timeout-secs 300
+      - name: Upload aarch64 QEMU artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-aarch64-artifacts
+          path: target/qemu/aarch64/

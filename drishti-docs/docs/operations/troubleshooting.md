@@ -29,3 +29,4 @@ If `drishti_series_dropped_total` increases:
 
 - unprivileged integration tests should pass without privileged eBPF attach
 - privileged smoke tests require `DRISHTI_PRIVILEGED_TESTS=1` and capable host kernel
+- QEMU smoke lane artifacts are emitted to `target/qemu/<arch>/` for triage

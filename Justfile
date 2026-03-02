@@ -24,6 +24,24 @@ build:
 build-ebpf:
     cargo run -p xtask -- build-ebpf
 
+qemu-prepare arch="x86_64":
+    cargo run -p xtask -- qemu prepare --arch {{arch}}
+
+qemu-run arch="x86_64" kvm="auto" timeout="180":
+    cargo run -p xtask -- qemu run --arch {{arch}} --kvm {{kvm}} --timeout-secs {{timeout}}
+
+qemu-smoke arch="x86_64" kvm="auto" timeout="180":
+    cargo run -p xtask -- qemu smoke --arch {{arch}} --kvm {{kvm}} --timeout-secs {{timeout}}
+
+qemu-smoke-x86 timeout="180":
+    cargo run -p xtask -- qemu smoke --arch x86_64 --kvm auto --timeout-secs {{timeout}}
+
+qemu-smoke-arm64 timeout="300":
+    cargo run -p xtask -- qemu smoke --arch aarch64 --kvm off --timeout-secs {{timeout}}
+
+qemu-ci arch="x86_64" kvm="auto" timeout="180":
+    cargo run -p xtask -- qemu ci --arch {{arch}} --kvm {{kvm}} --timeout-secs {{timeout}}
+
 run:
     cargo run -p drishti-daemon -- --config config/drishti.toml
 
