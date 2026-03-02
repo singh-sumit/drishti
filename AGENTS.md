@@ -28,6 +28,6 @@ Ship safe, testable Rust changes for the Drishti observability workspace, with s
 - Before merge, run: `just fmt-check`, `just lint`, `just test`.
 
 ## Issue Workflow
-- Keep local backlog in `docs/issues/backlog.yaml`.
-- Regenerate issue markdown under `docs/issues/generated/` after edits.
+- Keep local backlog in `internal-docs/issues/backlog.yaml`.
+- Regenerate issue markdown under `internal-docs/issues/generated/` after edits.
 - Use `scripts/sync_github_issues.sh --dry-run` before `--apply`.

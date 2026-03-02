@@ -2,55 +2,57 @@
 
 Drishti is a Rust observability daemon that combines eBPF event collection with a Prometheus-compatible exporter and Grafana dashboards.
 
-v0.3 expands collector coverage to CPU, process lifecycle, memory, network, disk, and syscall telemetry with `drishti_*` Prometheus metrics.
+## Docs
+
+Published engineering docs: <https://singh-sumit.github.io/drishti/>
+
+Local docs source:
+
+- published docs site: `drishti-docs/`
+- internal engineering docs and planning assets: `internal-docs/`
 
 ## Workspace
+
 - `drishti-common`: shared ABI-safe event/map types
 - `drishti-ebpf`: kernel-side eBPF programs
 - `drishti-daemon`: user-space daemon and metrics exporter
 - `xtask`: build and maintenance tasks
 
 ## Quick Start
+
 ```bash
 just build
 cargo run -p drishti-daemon -- --config config/drishti.toml
 ```
 
-Run a one-shot synthetic collection for quick verification:
+One-shot deterministic output:
 
 ```bash
 cargo run -p drishti-daemon -- --config config/drishti.toml --once
 ```
 
-## Syscall Collector
-Syscall tracing is disabled by default because it can increase event volume.
+## Local Development Commands
 
-Enable it in `config/drishti.toml`:
-
-```toml
-[collectors.syscall]
-enabled = true
-top_n = 20
-latency_buckets_usec = [1, 10, 50, 100, 500, 1000, 5000]
-```
-
-Prometheus series:
-- `drishti_syscall_count_total`
-- `drishti_syscall_error_total`
-- `drishti_syscall_latency_usec`
-
-## Common Commands
 ```bash
 just fmt-check
 just lint
 just test
-cargo run -p xtask -- build-ebpf
+```
+
+## Docs Development Commands
+
+```bash
+just docs-install
+just docs-dev
+just docs-build
+just docs-verify
 ```
 
 ## GitHub Issue Sync
+
 ```bash
-scripts/sync_github_issues.sh --repo <owner/repo> --input docs/issues/backlog.yaml --dry-run
-scripts/sync_github_issues.sh --repo <owner/repo> --input docs/issues/backlog.yaml --apply
+scripts/sync_github_issues.sh --repo <owner/repo> --input internal-docs/issues/backlog.yaml --dry-run
+scripts/sync_github_issues.sh --repo <owner/repo> --input internal-docs/issues/backlog.yaml --apply
 ```
 
-The sync flow now creates/updates milestones and issues, and writes deterministic parent tasklists from `parent_id` relationships in `docs/issues/backlog.yaml`.
+The sync flow creates/updates milestones and issues, maintains deterministic parent tasklists from `parent_id`, and closes issues where `status=done`.

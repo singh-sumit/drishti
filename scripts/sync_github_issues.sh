@@ -9,14 +9,14 @@ Usage:
 
 Options:
   --repo   GitHub repository slug (required)
-  --input  Backlog file (default: docs/issues/backlog.yaml)
+  --input  Backlog file (default: internal-docs/issues/backlog.yaml)
   --dry-run  Generate markdown and gh command preview without creating issues
   --apply    Create/update labels, milestones, and issues using gh
 USAGE
 }
 
 REPO=""
-INPUT="docs/issues/backlog.yaml"
+INPUT="internal-docs/issues/backlog.yaml"
 MODE=""
 
 while [[ $# -gt 0 ]]; do
@@ -54,6 +54,12 @@ if [[ -z "$REPO" || -z "$MODE" ]]; then
   exit 1
 fi
 
+if [[ "$INPUT" == docs/issues/* ]]; then
+  LEGACY_INPUT="$INPUT"
+  INPUT="internal-docs/${INPUT#docs/}"
+  echo "[warn] legacy path '$LEGACY_INPUT' is deprecated; using '$INPUT'" >&2
+fi
+
 python3 - "$REPO" "$INPUT" "$MODE" <<'PY'
 import json
 import os
@@ -68,7 +74,7 @@ repo, input_path, mode = sys.argv[1], sys.argv[2], sys.argv[3]
 
 root = pathlib.Path.cwd()
 backlog_path = root / input_path
-generated_dir = root / "docs/issues/generated"
+generated_dir = root / "internal-docs/issues/generated"
 commands_path = generated_dir / "gh_commands.sh"
 map_path = generated_dir / "issue_ids.json"
 
@@ -268,7 +274,7 @@ def generate_command_preview(
         lines.append(f"gh label create --repo {repo} '{label}' --color {label_color(label)} --force")
 
     for issue in issues:
-        body_file = f"docs/issues/generated/{sanitize_filename(issue['id'])}.md"
+        body_file = f"internal-docs/issues/generated/{sanitize_filename(issue['id'])}.md"
         local_id = issue["id"]
         labels = issue.get("labels", [])
         milestone = issue.get("milestone")

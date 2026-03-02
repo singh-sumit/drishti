@@ -1,0 +1,415 @@
+{
+  "milestones": [
+    "v0.1 Drishti Core",
+    "v0.2 Drishti Network+Disk",
+    "v0.3 Drishti Syscalls",
+    "v0.4 Drishti QEMU CI",
+    "v0.5 Drishti Packaging"
+  ],
+  "labels": ["drishti", "observability", "v0.1", "v0.2", "v0.3", "v0.4", "v0.5"],
+  "issues": [
+    {
+      "id": "DRISHTI-001",
+      "title": "Epic: Drishti v0.1 Core Delivery",
+      "type": "epic",
+      "labels": ["epic", "v0.1"],
+      "milestone": "v0.1 Drishti Core",
+      "status": "done",
+      "depends_on": [],
+      "body": "Track delivery of the v0.1 observability daemon scope.\n\nAcceptance:\n- Workspace and daemon build path available\n- CPU/process/memory metrics exported at /metrics\n- Dashboards and CI included"
+    },
+    {
+      "id": "DRISHTI-010",
+      "title": "Bootstrap Rust workspace and build automation",
+      "type": "task",
+      "labels": ["build", "rust", "v0.1"],
+      "milestone": "v0.1 Drishti Core",
+      "status": "done",
+      "depends_on": ["DRISHTI-001"],
+      "body": "Create workspace crates (`drishti-common`, `drishti-ebpf`, `drishti-daemon`, `xtask`) and baseline automation (`Justfile`, rust-toolchain, clippy policy)."
+    },
+    {
+      "id": "DRISHTI-020",
+      "title": "Implement shared ABI-safe event and map types",
+      "type": "task",
+      "labels": ["rust", "ebpf", "v0.1"],
+      "milestone": "v0.1 Drishti Core",
+      "status": "done",
+      "depends_on": ["DRISHTI-010"],
+      "body": "Define `#[repr(C)]` event and map structs in `drishti-common` for CPU, process lifecycle, and OOM paths."
+    },
+    {
+      "id": "DRISHTI-030",
+      "title": "Implement eBPF scheduler and process probes",
+      "type": "task",
+      "labels": ["ebpf", "cpu", "process", "v0.1"],
+      "milestone": "v0.1 Drishti Core",
+      "status": "done",
+      "depends_on": ["DRISHTI-020"],
+      "body": "Add `sched_switch`, `sched_wakeup`, and `sched_process_*` tracepoint programs with bounded maps and ring buffer output."
+    },
+    {
+      "id": "DRISHTI-040",
+      "title": "Implement daemon loader and collector pipeline",
+      "type": "task",
+      "labels": ["daemon", "collector", "v0.1"],
+      "milestone": "v0.1 Drishti Core",
+      "status": "done",
+      "depends_on": ["DRISHTI-020", "DRISHTI-030"],
+      "body": "Load/attach programs with partial-failure logging and route events to collector handlers with synthetic fallback support."
+    },
+    {
+      "id": "DRISHTI-050",
+      "title": "Implement memory procfs collector and filters",
+      "type": "task",
+      "labels": ["memory", "procfs", "v0.1"],
+      "milestone": "v0.1 Drishti Core",
+      "status": "done",
+      "depends_on": ["DRISHTI-040"],
+      "body": "Poll `/proc` for per-process RSS/VSS/fault data and system memory totals, respecting include/exclude filters."
+    },
+    {
+      "id": "DRISHTI-060",
+      "title": "Add Prometheus exporter and metric aggregation guards",
+      "type": "task",
+      "labels": ["metrics", "prometheus", "v0.1"],
+      "milestone": "v0.1 Drishti Core",
+      "status": "done",
+      "depends_on": ["DRISHTI-040", "DRISHTI-050"],
+      "body": "Expose `/metrics` and `/healthz`, register `drishti_*` metrics, and enforce `max_series` cardinality circuit breaker."
+    },
+    {
+      "id": "DRISHTI-070",
+      "title": "Provision Grafana dashboards and deployment files",
+      "type": "task",
+      "labels": ["grafana", "deploy", "v0.1"],
+      "milestone": "v0.1 Drishti Core",
+      "status": "done",
+      "depends_on": ["DRISHTI-060"],
+      "body": "Ship Grafana provisioning (datasource/dashboards), overview and process dashboards, docker compose, and hardened systemd unit."
+    },
+    {
+      "id": "DRISHTI-080",
+      "title": "Implement CI workflows and gated privileged smoke tests",
+      "type": "task",
+      "labels": ["ci", "testing", "v0.1"],
+      "milestone": "v0.1 Drishti Core",
+      "status": "done",
+      "depends_on": ["DRISHTI-060"],
+      "body": "Add CI jobs for fmt/clippy/tests, eBPF build path, and optional privileged smoke test execution."
+    },
+    {
+      "id": "DRISHTI-090",
+      "title": "Deferred: Network telemetry collector",
+      "type": "task",
+      "labels": ["deferred", "network", "v0.2"],
+      "milestone": "v0.2 Drishti Network+Disk",
+      "status": "done",
+      "depends_on": ["DRISHTI-001"],
+      "body": "Implement per-interface and per-process tx/rx telemetry and TCP RTT metrics in next milestone."
+    },
+    {
+      "id": "DRISHTI-100",
+      "title": "Network: ABI types and config surface",
+      "type": "task",
+      "labels": ["network", "rust", "v0.2"],
+      "milestone": "v0.2 Drishti Network+Disk",
+      "parent_id": "DRISHTI-090",
+      "status": "done",
+      "depends_on": ["DRISHTI-090"],
+      "body": "Add network event structs in drishti-common, collector config keys, env overrides, and validation defaults."
+    },
+    {
+      "id": "DRISHTI-101",
+      "title": "Network: eBPF probe and ring buffer events",
+      "type": "task",
+      "labels": ["network", "ebpf", "v0.2"],
+      "milestone": "v0.2 Drishti Network+Disk",
+      "parent_id": "DRISHTI-090",
+      "status": "done",
+      "depends_on": ["DRISHTI-100"],
+      "body": "Implement verifier-safe network probe paths and event emission for tx/rx, RTT, and retransmit signals."
+    },
+    {
+      "id": "DRISHTI-102",
+      "title": "Network: daemon aggregation and exporter metrics",
+      "type": "task",
+      "labels": ["network", "daemon", "metrics", "v0.2"],
+      "milestone": "v0.2 Drishti Network+Disk",
+      "parent_id": "DRISHTI-090",
+      "status": "done",
+      "depends_on": ["DRISHTI-101"],
+      "body": "Consume network events, aggregate counters/histograms, and expose drishti_net_* metric families."
+    },
+    {
+      "id": "DRISHTI-103",
+      "title": "Network: tests and privileged smoke coverage",
+      "type": "task",
+      "labels": ["network", "testing", "v0.2"],
+      "milestone": "v0.2 Drishti Network+Disk",
+      "parent_id": "DRISHTI-090",
+      "status": "done",
+      "depends_on": ["DRISHTI-102"],
+      "body": "Add unit/integration tests and gated privileged checks for network collectors."
+    },
+    {
+      "id": "DRISHTI-104",
+      "title": "Network: docs and dashboard updates",
+      "type": "task",
+      "labels": ["network", "grafana", "docs", "v0.2"],
+      "milestone": "v0.2 Drishti Network+Disk",
+      "parent_id": "DRISHTI-090",
+      "status": "done",
+      "depends_on": ["DRISHTI-103"],
+      "body": "Update configuration docs and Grafana dashboard panels for network telemetry metrics."
+    },
+    {
+      "id": "DRISHTI-091",
+      "title": "Deferred: Disk I/O collector",
+      "type": "task",
+      "labels": ["deferred", "disk", "v0.2"],
+      "milestone": "v0.2 Drishti Network+Disk",
+      "status": "done",
+      "depends_on": ["DRISHTI-001"],
+      "body": "Implement block layer tracepoint collectors for throughput, latency, and queue depth."
+    },
+    {
+      "id": "DRISHTI-110",
+      "title": "Disk: ABI types and config surface",
+      "type": "task",
+      "labels": ["disk", "rust", "v0.2"],
+      "milestone": "v0.2 Drishti Network+Disk",
+      "parent_id": "DRISHTI-091",
+      "status": "done",
+      "depends_on": ["DRISHTI-091"],
+      "body": "Add disk event structs in drishti-common, collector config keys, env overrides, and defaults."
+    },
+    {
+      "id": "DRISHTI-111",
+      "title": "Disk: eBPF block I/O probes",
+      "type": "task",
+      "labels": ["disk", "ebpf", "v0.2"],
+      "milestone": "v0.2 Drishti Network+Disk",
+      "parent_id": "DRISHTI-091",
+      "status": "done",
+      "depends_on": ["DRISHTI-110"],
+      "body": "Implement bounded in-flight request maps and completion latency computation for block I/O telemetry."
+    },
+    {
+      "id": "DRISHTI-112",
+      "title": "Disk: daemon aggregation and exporter metrics",
+      "type": "task",
+      "labels": ["disk", "daemon", "metrics", "v0.2"],
+      "milestone": "v0.2 Drishti Network+Disk",
+      "parent_id": "DRISHTI-091",
+      "status": "done",
+      "depends_on": ["DRISHTI-111"],
+      "body": "Consume disk events, aggregate counters/histograms/gauges, and expose drishti_disk_* metric families."
+    },
+    {
+      "id": "DRISHTI-113",
+      "title": "Disk: tests and privileged smoke coverage",
+      "type": "task",
+      "labels": ["disk", "testing", "v0.2"],
+      "milestone": "v0.2 Drishti Network+Disk",
+      "parent_id": "DRISHTI-091",
+      "status": "done",
+      "depends_on": ["DRISHTI-112"],
+      "body": "Add unit/integration tests and gated privileged checks for disk collectors."
+    },
+    {
+      "id": "DRISHTI-114",
+      "title": "Disk: docs and dashboard updates",
+      "type": "task",
+      "labels": ["disk", "grafana", "docs", "v0.2"],
+      "milestone": "v0.2 Drishti Network+Disk",
+      "parent_id": "DRISHTI-091",
+      "status": "done",
+      "depends_on": ["DRISHTI-113"],
+      "body": "Update configuration docs and Grafana dashboard panels for disk telemetry metrics."
+    },
+    {
+      "id": "DRISHTI-092",
+      "title": "Deferred: Syscall tracing collector",
+      "type": "task",
+      "labels": ["deferred", "syscall", "v0.3"],
+      "milestone": "v0.3 Drishti Syscalls",
+      "status": "done",
+      "depends_on": ["DRISHTI-001"],
+      "body": "Implement raw syscall enter/exit tracing with latency histograms and error counters."
+    },
+    {
+      "id": "DRISHTI-120",
+      "title": "Syscall: ABI types and config surface",
+      "type": "task",
+      "labels": ["syscall", "rust", "v0.3"],
+      "milestone": "v0.3 Drishti Syscalls",
+      "parent_id": "DRISHTI-092",
+      "status": "done",
+      "depends_on": ["DRISHTI-092"],
+      "body": "Add syscall event structs in drishti-common plus collector config defaults and environment overrides."
+    },
+    {
+      "id": "DRISHTI-121",
+      "title": "Syscall: eBPF enter/exit probes and maps",
+      "type": "task",
+      "labels": ["syscall", "ebpf", "v0.3"],
+      "milestone": "v0.3 Drishti Syscalls",
+      "parent_id": "DRISHTI-092",
+      "status": "done",
+      "depends_on": ["DRISHTI-120"],
+      "body": "Implement raw_syscalls sys_enter/sys_exit tracing with bounded start timestamp maps and ring buffer events."
+    },
+    {
+      "id": "DRISHTI-122",
+      "title": "Syscall: daemon collector and metrics aggregation",
+      "type": "task",
+      "labels": ["syscall", "daemon", "metrics", "v0.3"],
+      "milestone": "v0.3 Drishti Syscalls",
+      "parent_id": "DRISHTI-092",
+      "status": "done",
+      "depends_on": ["DRISHTI-121"],
+      "body": "Consume syscall events, export count/error/latency metrics, and enforce top-N + max_series cardinality controls."
+    },
+    {
+      "id": "DRISHTI-123",
+      "title": "Syscall: tests and privileged smoke coverage",
+      "type": "task",
+      "labels": ["syscall", "testing", "v0.3"],
+      "milestone": "v0.3 Drishti Syscalls",
+      "parent_id": "DRISHTI-092",
+      "status": "done",
+      "depends_on": ["DRISHTI-122"],
+      "body": "Add unit/integration and gated privileged smoke coverage for syscall collection and exporter paths."
+    },
+    {
+      "id": "DRISHTI-124",
+      "title": "Syscall: dashboards and docs updates",
+      "type": "task",
+      "labels": ["syscall", "grafana", "docs", "v0.3"],
+      "milestone": "v0.3 Drishti Syscalls",
+      "parent_id": "DRISHTI-092",
+      "status": "done",
+      "depends_on": ["DRISHTI-123"],
+      "body": "Update Grafana dashboards and setup documentation for syscall metrics and configuration controls."
+    },
+    {
+      "id": "DRISHTI-093",
+      "title": "Deferred: Cross-arch QEMU CI execution",
+      "type": "task",
+      "labels": ["deferred", "qemu", "ci", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "status": "planned",
+      "depends_on": ["DRISHTI-001"],
+      "body": "Run x86_64 and aarch64 integration checks under QEMU in CI."
+    },
+    {
+      "id": "DRISHTI-094",
+      "title": "Deferred: musl static optimization and size budgets",
+      "type": "task",
+      "labels": ["deferred", "build", "optimization", "v0.5"],
+      "milestone": "v0.5 Drishti Packaging",
+      "status": "planned",
+      "depends_on": ["DRISHTI-001"],
+      "body": "Tune release settings and cross-build pipeline for static binaries and strict size targets."
+    },
+    {
+      "id": "DRISHTI-130",
+      "title": "Docs Portal: Drishti Engineering Documentation",
+      "type": "task",
+      "labels": ["docs", "docusaurus", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "status": "done",
+      "depends_on": ["DRISHTI-001"],
+      "body": "Deliver the engineering documentation platform for Drishti with GitHub Pages deployment, architecture docs, and operating guidance."
+    },
+    {
+      "id": "DRISHTI-131",
+      "title": "Docs: full docs/ -> internal-docs/ migration",
+      "type": "task",
+      "labels": ["docs", "migration", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "parent_id": "DRISHTI-130",
+      "status": "done",
+      "depends_on": ["DRISHTI-130"],
+      "body": "Move internal project docs paths to internal-docs and update CI, scripts, and references for canonical issue automation paths."
+    },
+    {
+      "id": "DRISHTI-132",
+      "title": "Docs: Docusaurus bootstrap + Mermaid integration",
+      "type": "task",
+      "labels": ["docs", "docusaurus", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "parent_id": "DRISHTI-130",
+      "status": "done",
+      "depends_on": ["DRISHTI-131"],
+      "body": "Create drishti-docs with TypeScript Docusaurus configuration, strict link checks, and Mermaid rendering support."
+    },
+    {
+      "id": "DRISHTI-133",
+      "title": "Docs: architecture and data-flow content from spec",
+      "type": "task",
+      "labels": ["docs", "architecture", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "parent_id": "DRISHTI-130",
+      "status": "done",
+      "depends_on": ["DRISHTI-132"],
+      "body": "Author architecture, data pipeline, and spec alignment pages using internal-docs/aether-ebpf-observability-spec.docx as source of truth."
+    },
+    {
+      "id": "DRISHTI-134",
+      "title": "Docs: usage, operations, troubleshooting content",
+      "type": "task",
+      "labels": ["docs", "operations", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "parent_id": "DRISHTI-130",
+      "status": "done",
+      "depends_on": ["DRISHTI-133"],
+      "body": "Document quickstart, configuration, collector matrix, troubleshooting, and performance budget guidance."
+    },
+    {
+      "id": "DRISHTI-135",
+      "title": "Docs: integration guides (Prometheus/Grafana/systemd)",
+      "type": "task",
+      "labels": ["docs", "integrations", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "parent_id": "DRISHTI-130",
+      "status": "done",
+      "depends_on": ["DRISHTI-133"],
+      "body": "Publish integration guides for Prometheus scraping, Grafana dashboards, and hardened systemd deployment."
+    },
+    {
+      "id": "DRISHTI-136",
+      "title": "Docs: GitHub Pages workflow and release checks",
+      "type": "task",
+      "labels": ["docs", "ci", "github-pages", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "parent_id": "DRISHTI-130",
+      "status": "done",
+      "depends_on": ["DRISHTI-132"],
+      "body": "Add docs workflow to build on PRs and deploy GitHub Pages on main with required permissions and artifact upload steps."
+    },
+    {
+      "id": "DRISHTI-137",
+      "title": "Docs: README + developer workflow + rustdoc reference linking",
+      "type": "task",
+      "labels": ["docs", "developer-experience", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "parent_id": "DRISHTI-130",
+      "status": "done",
+      "depends_on": ["DRISHTI-134"],
+      "body": "Update repository onboarding to include docs development commands, internal docs location, and Rust API reference linkage."
+    },
+    {
+      "id": "DRISHTI-138",
+      "title": "Docs: closeout, validation evidence, issue sync finalization",
+      "type": "task",
+      "labels": ["docs", "testing", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "parent_id": "DRISHTI-130",
+      "status": "done",
+      "depends_on": ["DRISHTI-135"],
+      "body": "Capture validation results for rust checks and docs build checks, then finalize issue sync/closeout for the docs milestone."
+    }
+  ]
+}
