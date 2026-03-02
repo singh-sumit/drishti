@@ -1,0 +1,61 @@
+name: ci
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  fmt-clippy-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+      - name: Format check
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Unit and integration tests
+        run: cargo test --workspace
+      - name: Validate skill structure
+        run: python3 scripts/validate_codex_skills.py
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts
+          path: |
+            target/debug/deps/
+            docs/issues/generated/
+
+  ebpf-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+      - name: Install LLVM and linker dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm lld
+      - name: Install bpf-linker
+        run: cargo +nightly install bpf-linker
+      - name: Build eBPF object
+        run: cargo +nightly run -p xtask -- build-ebpf
+
+  privileged-smoke:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run gated privileged smoke tests
+        env:
+          DRISHTI_PRIVILEGED_TESTS: "1"
+        run: cargo test -p drishti-daemon privileged -- --nocapture

@@ -1,0 +1,132 @@
+{
+  "milestone": "v0.1 Drishti Core",
+  "labels": ["drishti", "observability", "v0.1"],
+  "issues": [
+    {
+      "id": "DRISHTI-001",
+      "title": "Epic: Drishti v0.1 Core Delivery",
+      "type": "epic",
+      "labels": ["epic", "v0.1"],
+      "status": "done",
+      "depends_on": [],
+      "body": "Track delivery of the v0.1 observability daemon scope.\n\nAcceptance:\n- Workspace and daemon build path available\n- CPU/process/memory metrics exported at /metrics\n- Dashboards and CI included"
+    },
+    {
+      "id": "DRISHTI-010",
+      "title": "Bootstrap Rust workspace and build automation",
+      "type": "task",
+      "labels": ["build", "rust", "v0.1"],
+      "status": "done",
+      "depends_on": ["DRISHTI-001"],
+      "body": "Create workspace crates (`drishti-common`, `drishti-ebpf`, `drishti-daemon`, `xtask`) and baseline automation (`Justfile`, rust-toolchain, clippy policy)."
+    },
+    {
+      "id": "DRISHTI-020",
+      "title": "Implement shared ABI-safe event and map types",
+      "type": "task",
+      "labels": ["rust", "ebpf", "v0.1"],
+      "status": "done",
+      "depends_on": ["DRISHTI-010"],
+      "body": "Define `#[repr(C)]` event and map structs in `drishti-common` for CPU, process lifecycle, and OOM paths."
+    },
+    {
+      "id": "DRISHTI-030",
+      "title": "Implement eBPF scheduler and process probes",
+      "type": "task",
+      "labels": ["ebpf", "cpu", "process", "v0.1"],
+      "status": "done",
+      "depends_on": ["DRISHTI-020"],
+      "body": "Add `sched_switch`, `sched_wakeup`, and `sched_process_*` tracepoint programs with bounded maps and ring buffer output."
+    },
+    {
+      "id": "DRISHTI-040",
+      "title": "Implement daemon loader and collector pipeline",
+      "type": "task",
+      "labels": ["daemon", "collector", "v0.1"],
+      "status": "done",
+      "depends_on": ["DRISHTI-020", "DRISHTI-030"],
+      "body": "Load/attach programs with partial-failure logging and route events to collector handlers with synthetic fallback support."
+    },
+    {
+      "id": "DRISHTI-050",
+      "title": "Implement memory procfs collector and filters",
+      "type": "task",
+      "labels": ["memory", "procfs", "v0.1"],
+      "status": "done",
+      "depends_on": ["DRISHTI-040"],
+      "body": "Poll `/proc` for per-process RSS/VSS/fault data and system memory totals, respecting include/exclude filters."
+    },
+    {
+      "id": "DRISHTI-060",
+      "title": "Add Prometheus exporter and metric aggregation guards",
+      "type": "task",
+      "labels": ["metrics", "prometheus", "v0.1"],
+      "status": "done",
+      "depends_on": ["DRISHTI-040", "DRISHTI-050"],
+      "body": "Expose `/metrics` and `/healthz`, register `drishti_*` metrics, and enforce `max_series` cardinality circuit breaker."
+    },
+    {
+      "id": "DRISHTI-070",
+      "title": "Provision Grafana dashboards and deployment files",
+      "type": "task",
+      "labels": ["grafana", "deploy", "v0.1"],
+      "status": "done",
+      "depends_on": ["DRISHTI-060"],
+      "body": "Ship Grafana provisioning (datasource/dashboards), overview and process dashboards, docker compose, and hardened systemd unit."
+    },
+    {
+      "id": "DRISHTI-080",
+      "title": "Implement CI workflows and gated privileged smoke tests",
+      "type": "task",
+      "labels": ["ci", "testing", "v0.1"],
+      "status": "done",
+      "depends_on": ["DRISHTI-060"],
+      "body": "Add CI jobs for fmt/clippy/tests, eBPF build path, and optional privileged smoke test execution."
+    },
+    {
+      "id": "DRISHTI-090",
+      "title": "Deferred: Network telemetry collector",
+      "type": "task",
+      "labels": ["deferred", "network"],
+      "status": "planned",
+      "depends_on": ["DRISHTI-001"],
+      "body": "Implement per-interface and per-process tx/rx telemetry and TCP RTT metrics in next milestone."
+    },
+    {
+      "id": "DRISHTI-091",
+      "title": "Deferred: Disk I/O collector",
+      "type": "task",
+      "labels": ["deferred", "disk"],
+      "status": "planned",
+      "depends_on": ["DRISHTI-001"],
+      "body": "Implement block layer tracepoint collectors for throughput, latency, and queue depth."
+    },
+    {
+      "id": "DRISHTI-092",
+      "title": "Deferred: Syscall tracing collector",
+      "type": "task",
+      "labels": ["deferred", "syscall"],
+      "status": "planned",
+      "depends_on": ["DRISHTI-001"],
+      "body": "Implement raw syscall enter/exit tracing with latency histograms and error counters."
+    },
+    {
+      "id": "DRISHTI-093",
+      "title": "Deferred: Cross-arch QEMU CI execution",
+      "type": "task",
+      "labels": ["deferred", "qemu", "ci"],
+      "status": "planned",
+      "depends_on": ["DRISHTI-001"],
+      "body": "Run x86_64 and aarch64 integration checks under QEMU in CI."
+    },
+    {
+      "id": "DRISHTI-094",
+      "title": "Deferred: musl static optimization and size budgets",
+      "type": "task",
+      "labels": ["deferred", "build", "optimization"],
+      "status": "planned",
+      "depends_on": ["DRISHTI-001"],
+      "body": "Tune release settings and cross-build pipeline for static binaries and strict size targets."
+    }
+  ]
+}

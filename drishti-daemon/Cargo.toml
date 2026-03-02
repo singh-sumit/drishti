@@ -1,0 +1,47 @@
+[package]
+name = "drishti-daemon"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+build = "build.rs"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "drishti-daemon"
+path = "src/main.rs"
+
+[features]
+default = []
+ebpf-runtime = ["dep:aya", "dep:bytes"]
+
+[dependencies]
+anyhow.workspace = true
+axum.workspace = true
+bincode.workspace = true
+clap.workspace = true
+libc.workspace = true
+prometheus-client.workspace = true
+serde.workspace = true
+toml.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+futures.workspace = true
+drishti-common = { path = "../drishti-common", features = ["std"] }
+aya = { version = "0.13", optional = true }
+bytes = { version = "1.10", optional = true }
+
+[dev-dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+tempfile = "3.20"
+
+[lints.clippy]
+all = "deny"
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+
+[lints.rust]
+unsafe_code = "allow"

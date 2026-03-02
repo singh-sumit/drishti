@@ -1,0 +1,6 @@
+/target
+**/*.rs.bk
+.env
+*.log
+*.pid
+.DS_Store

@@ -1,0 +1,6 @@
+prefix_rule(pattern=["cargo", "fmt", "--all", "--", "--check"], decision="allow")
+prefix_rule(pattern=["cargo", "clippy", "--workspace", "--all-targets", "--", "-D", "warnings"], decision="allow")
+prefix_rule(pattern=["cargo", "test", "--workspace"], decision="allow")
+prefix_rule(pattern=["cargo", "nextest", "run", "--workspace"], decision="allow")
+prefix_rule(pattern=["cargo", "run", "-p", "xtask", "--", "build-ebpf"], decision="allow")
+prefix_rule(pattern=["docker", "compose", "config"], decision="allow")
