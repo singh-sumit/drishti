@@ -15,14 +15,14 @@ sequenceDiagram
   participant E as Exporter
   participant P as Prometheus
 
-  K->>B: tracepoint/kprobe fires
-  B->>R: write bounded event/map update
-  D->>R: poll ring buffer + read maps
-  D->>A: record event with labels
-  A->>A: enforce max_series/top_n
-  E->>A: encode OpenMetrics
-  P->>E: GET /metrics
-  E-->>P: drishti_* text exposition
+  K->>B: "tracepoint/kprobe fires"
+  B->>R: "write bounded event/map update"
+  D->>R: "poll ring buffer + read maps"
+  D->>A: "record event with labels"
+  A->>A: "enforce max_series/top_n"
+  E->>A: "encode OpenMetrics"
+  P->>E: "GET /metrics"
+  E-->>P: "drishti_* text exposition"
 ```
 
 ## Collector Isolation

@@ -39,6 +39,24 @@ just lint
 just test
 ```
 
+## QEMU Validation (v0.4)
+
+```bash
+just qemu-prepare arch=x86_64
+just qemu-smoke-x86
+```
+
+If `/boot/vmlinuz-*` is missing (common on WSL), `just qemu-prepare` now auto-falls
+back to extracting an Ubuntu generic kernel package for x86_64.
+
+For arm64 runs, provide a kernel image (or kernel .deb extract source):
+
+```bash
+rustup target add aarch64-unknown-linux-musl
+DRISHTI_QEMU_AARCH64_KERNEL=/abs/path/to/vmlinuz \
+  just qemu-smoke-arm64
+```
+
 ## Docs Development Commands
 
 ```bash

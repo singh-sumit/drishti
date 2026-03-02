@@ -5,7 +5,7 @@ Type: `task`
 Status: `done`
 Milestone: `v0.4 Drishti QEMU CI`
 Labels: `docs, operations, v0.4`
-Parent: `DRISHTI-130`
+Parent: `DRISHTI-149`
 Depends on: `DRISHTI-133`
 
 Document quickstart, configuration, collector matrix, troubleshooting, and performance budget guidance.

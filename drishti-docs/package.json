@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "check:mermaid": "NO_UPDATE_NOTIFIER=1 node scripts/check-mermaid.mjs",
     "docusaurus": "NO_UPDATE_NOTIFIER=1 docusaurus",
     "start": "NO_UPDATE_NOTIFIER=1 docusaurus start",
     "build": "NO_UPDATE_NOTIFIER=1 docusaurus build",
@@ -20,6 +21,7 @@
     "@docusaurus/theme-mermaid": "3.9.2",
     "@mdx-js/react": "^3.0.0",
     "clsx": "^2.0.0",
+    "mermaid": "^11.12.0",
     "prism-react-renderer": "^2.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
@@ -28,6 +30,7 @@
     "@docusaurus/module-type-aliases": "3.9.2",
     "@docusaurus/tsconfig": "3.9.2",
     "@docusaurus/types": "3.9.2",
+    "jsdom": "^28.1.0",
     "typescript": "~5.6.2"
   },
   "browserslist": {

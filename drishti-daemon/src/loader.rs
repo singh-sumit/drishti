@@ -13,7 +13,7 @@ use tokio::{
     sync::{mpsc, watch},
     task::JoinHandle,
 };
-use tracing::{info, warn};
+use tracing::info;
 
 use crate::{collectors::ObservabilityEvent, config::Config};
 
@@ -49,7 +49,9 @@ pub async fn start(
         let _ = config;
         let _ = event_tx;
         let _ = shutdown_rx;
-        warn!("compiled without ebpf-runtime feature; running without kernel event collection");
+        tracing::warn!(
+            "compiled without ebpf-runtime feature; running without kernel event collection"
+        );
         Ok(Vec::new())
     }
 }
@@ -512,14 +514,15 @@ mod ebpf_runtime {
             attach_optional_tracepoint(&mut bpf, "sys_exit", "raw_syscalls", "sys_exit");
         }
 
-        let mut ring = RingBuf::try_from(
-            bpf.map_mut("EVENTS")
-                .context("EVENTS map missing in eBPF object")?,
-        )
-        .context("failed to initialize ring buffer")?;
-
-        let mut shutdown_rx_for_thread = shutdown_rx.clone();
         let handle = tokio::task::spawn_blocking(move || {
+            let mut bpf = bpf;
+            let mut ring = RingBuf::try_from(
+                bpf.map_mut("EVENTS")
+                    .context("EVENTS map missing in eBPF object")?,
+            )
+            .context("failed to initialize ring buffer")?;
+            let mut shutdown_rx_for_thread = shutdown_rx;
+
             loop {
                 while let Some(item) = ring.next() {
                     if let Some(event) = parse_ring_event(item.as_ref()) {

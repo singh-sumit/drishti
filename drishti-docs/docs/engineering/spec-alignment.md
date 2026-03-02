@@ -21,7 +21,7 @@ Reference source:
 | Prometheus `/metrics` export | Implemented |
 | Grafana dashboards | Implemented (provisioned JSON dashboards) |
 | systemd service mode | Implemented |
-| QEMU full CI lane | Deferred to v0.4 issue track |
+| QEMU full CI lane | Implemented (hybrid gating: x86_64 on PR, aarch64 on main/manual) |
 | musl size optimization | Deferred to v0.5 issue track |
 
 ## Design Decisions Preserved

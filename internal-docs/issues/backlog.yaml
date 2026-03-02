@@ -295,11 +295,11 @@
     },
     {
       "id": "DRISHTI-093",
-      "title": "Deferred: Cross-arch QEMU CI execution",
+      "title": "Cross-arch QEMU CI execution",
       "type": "task",
-      "labels": ["deferred", "qemu", "ci", "v0.4"],
+      "labels": ["qemu", "ci", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["DRISHTI-001"],
       "body": "Run x86_64 and aarch64 integration checks under QEMU in CI."
     },
@@ -319,6 +319,7 @@
       "type": "task",
       "labels": ["docs", "docusaurus", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
+      "parent_id": "DRISHTI-149",
       "status": "done",
       "depends_on": ["DRISHTI-001"],
       "body": "Deliver the engineering documentation platform for Drishti with GitHub Pages deployment, architecture docs, and operating guidance."
@@ -329,7 +330,7 @@
       "type": "task",
       "labels": ["docs", "migration", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
-      "parent_id": "DRISHTI-130",
+      "parent_id": "DRISHTI-149",
       "status": "done",
       "depends_on": ["DRISHTI-130"],
       "body": "Move internal project docs paths to internal-docs and update CI, scripts, and references for canonical issue automation paths."
@@ -340,7 +341,7 @@
       "type": "task",
       "labels": ["docs", "docusaurus", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
-      "parent_id": "DRISHTI-130",
+      "parent_id": "DRISHTI-149",
       "status": "done",
       "depends_on": ["DRISHTI-131"],
       "body": "Create drishti-docs with TypeScript Docusaurus configuration, strict link checks, and Mermaid rendering support."
@@ -351,7 +352,7 @@
       "type": "task",
       "labels": ["docs", "architecture", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
-      "parent_id": "DRISHTI-130",
+      "parent_id": "DRISHTI-149",
       "status": "done",
       "depends_on": ["DRISHTI-132"],
       "body": "Author architecture, data pipeline, and spec alignment pages using internal-docs/aether-ebpf-observability-spec.docx as source of truth."
@@ -362,7 +363,7 @@
       "type": "task",
       "labels": ["docs", "operations", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
-      "parent_id": "DRISHTI-130",
+      "parent_id": "DRISHTI-149",
       "status": "done",
       "depends_on": ["DRISHTI-133"],
       "body": "Document quickstart, configuration, collector matrix, troubleshooting, and performance budget guidance."
@@ -373,7 +374,7 @@
       "type": "task",
       "labels": ["docs", "integrations", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
-      "parent_id": "DRISHTI-130",
+      "parent_id": "DRISHTI-149",
       "status": "done",
       "depends_on": ["DRISHTI-133"],
       "body": "Publish integration guides for Prometheus scraping, Grafana dashboards, and hardened systemd deployment."
@@ -384,7 +385,7 @@
       "type": "task",
       "labels": ["docs", "ci", "github-pages", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
-      "parent_id": "DRISHTI-130",
+      "parent_id": "DRISHTI-149",
       "status": "done",
       "depends_on": ["DRISHTI-132"],
       "body": "Add docs workflow to build on PRs and deploy GitHub Pages on main with required permissions and artifact upload steps."
@@ -395,7 +396,7 @@
       "type": "task",
       "labels": ["docs", "developer-experience", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
-      "parent_id": "DRISHTI-130",
+      "parent_id": "DRISHTI-149",
       "status": "done",
       "depends_on": ["DRISHTI-134"],
       "body": "Update repository onboarding to include docs development commands, internal docs location, and Rust API reference linkage."
@@ -406,10 +407,108 @@
       "type": "task",
       "labels": ["docs", "testing", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
-      "parent_id": "DRISHTI-130",
+      "parent_id": "DRISHTI-149",
       "status": "done",
       "depends_on": ["DRISHTI-135"],
       "body": "Capture validation results for rust checks and docs build checks, then finalize issue sync/closeout for the docs milestone."
+    },
+    {
+      "id": "DRISHTI-149",
+      "title": "Docs: v0.4 documentation workstream umbrella",
+      "type": "task",
+      "labels": ["docs", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "status": "done",
+      "depends_on": ["DRISHTI-001"],
+      "body": "Umbrella tracker for the v0.4 documentation stream. Child issues cover migration, Docusaurus integration, architecture and operations content, pages release checks, and final closeout evidence."
+    },
+    {
+      "id": "DRISHTI-150",
+      "title": "QEMU CI architecture + kernel/BTF prerequisites",
+      "type": "task",
+      "labels": ["qemu", "ci", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "parent_id": "DRISHTI-093",
+      "status": "done",
+      "depends_on": ["DRISHTI-093"],
+      "body": "Define v0.4 QEMU CI target matrix, kernel/BTF requirements, and runner prerequisites for deterministic privileged validation."
+    },
+    {
+      "id": "DRISHTI-151",
+      "title": "QEMU image/bootstrap automation",
+      "type": "task",
+      "labels": ["qemu", "ci", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "parent_id": "DRISHTI-093",
+      "status": "done",
+      "depends_on": ["DRISHTI-150"],
+      "body": "Automate QEMU guest image/bootstrap setup (qcow/rootfs + boot pipeline) for repeatable local and CI execution."
+    },
+    {
+      "id": "DRISHTI-152",
+      "title": "QEMU harness in xtask",
+      "type": "task",
+      "labels": ["qemu", "ci", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "parent_id": "DRISHTI-093",
+      "status": "done",
+      "depends_on": ["DRISHTI-151"],
+      "body": "Implement an xtask harness to boot QEMU guests, wait for readiness, execute test commands, and perform deterministic teardown."
+    },
+    {
+      "id": "DRISHTI-153",
+      "title": "Privileged smoke suite execution inside QEMU",
+      "type": "task",
+      "labels": ["qemu", "testing", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "parent_id": "DRISHTI-093",
+      "status": "done",
+      "depends_on": ["DRISHTI-152"],
+      "body": "Execute privileged smoke tests in QEMU for CPU, process, memory, network, disk, and syscall telemetry paths."
+    },
+    {
+      "id": "DRISHTI-154",
+      "title": "GitHub Actions QEMU workflow job",
+      "type": "task",
+      "labels": ["qemu", "ci", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "parent_id": "DRISHTI-093",
+      "status": "done",
+      "depends_on": ["DRISHTI-153"],
+      "body": "Add GitHub Actions QEMU job wiring (manual + gated branch/main policy) for cross-arch privileged validation."
+    },
+    {
+      "id": "DRISHTI-155",
+      "title": "QEMU artifacts/logging and failure triage",
+      "type": "task",
+      "labels": ["qemu", "ci", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "parent_id": "DRISHTI-093",
+      "status": "done",
+      "depends_on": ["DRISHTI-153"],
+      "body": "Capture and publish serial console logs, dmesg, daemon output, and test reports for QEMU CI triage."
+    },
+    {
+      "id": "DRISHTI-156",
+      "title": "QEMU docs and runbook",
+      "type": "task",
+      "labels": ["qemu", "docs", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "parent_id": "DRISHTI-093",
+      "status": "done",
+      "depends_on": ["DRISHTI-154"],
+      "body": "Document local and CI QEMU workflows, prerequisites, troubleshooting steps, and operational expectations."
+    },
+    {
+      "id": "DRISHTI-157",
+      "title": "v0.4 closeout and acceptance evidence",
+      "type": "task",
+      "labels": ["qemu", "ci", "testing", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "parent_id": "DRISHTI-093",
+      "status": "done",
+      "depends_on": ["DRISHTI-154", "DRISHTI-155", "DRISHTI-156"],
+      "body": "Collect v0.4 acceptance evidence, finalize milestone checks, and close remaining QEMU roadmap tasks."
     }
   ]
 }

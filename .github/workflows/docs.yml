@@ -44,6 +44,10 @@ jobs:
         working-directory: drishti-docs
         run: npm ci
 
+      - name: Validate Mermaid diagrams
+        working-directory: drishti-docs
+        run: npm run check:mermaid
+
       - name: Build docs
         working-directory: drishti-docs
         run: npm run build
