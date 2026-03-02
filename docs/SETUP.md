@@ -19,4 +19,5 @@ just fmt-check
 just lint
 just test
 cargo run -p xtask -- build-ebpf
+scripts/sync_github_issues.sh --repo <owner/repo> --input docs/issues/backlog.yaml --dry-run
 ```

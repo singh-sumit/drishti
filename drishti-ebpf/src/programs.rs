@@ -7,10 +7,11 @@ use aya_ebpf::{
     programs::TracePointContext,
 };
 use drishti_common::{
-    COMM_LEN,
+    COMM_LEN, IFACE_LEN,
     events::{
-        CpuRuntimeEvent, CpuWaitEvent, EventKind, OomKillEvent, ProcLifecycleEvent,
-        ProcLifecycleKind,
+        CpuRuntimeEvent, CpuWaitEvent, DiskIoEvent, DiskOp, EventKind, NetDirection,
+        NetTrafficEvent, OomKillEvent, ProcLifecycleEvent, ProcLifecycleKind, TcpRetransmitEvent,
+        TcpRttEvent,
     },
 };
 
@@ -81,6 +82,105 @@ pub fn oom_kill_process(_ctx: TracePointContext) -> u32 {
         pid: current_pid(),
         tgid: current_tgid(),
         pages: 0,
+        comm: current_comm(),
+    };
+    submit_event(&event)
+}
+
+#[tracepoint(name = "net_dev_xmit", category = "net")]
+pub fn net_dev_xmit(_ctx: TracePointContext) -> u32 {
+    let event = NetTrafficEvent {
+        kind: EventKind::NetTraffic as u8,
+        direction: NetDirection::Tx as u8,
+        _pad0: [0; 2],
+        pid: current_pid(),
+        tgid: current_tgid(),
+        ifindex: 0,
+        bytes: 512,
+        packets: 1,
+        comm: current_comm(),
+        iface: default_iface(),
+    };
+    submit_event(&event)
+}
+
+#[tracepoint(name = "netif_receive_skb", category = "net")]
+pub fn netif_receive_skb(_ctx: TracePointContext) -> u32 {
+    let event = NetTrafficEvent {
+        kind: EventKind::NetTraffic as u8,
+        direction: NetDirection::Rx as u8,
+        _pad0: [0; 2],
+        pid: current_pid(),
+        tgid: current_tgid(),
+        ifindex: 0,
+        bytes: 512,
+        packets: 1,
+        comm: current_comm(),
+        iface: default_iface(),
+    };
+    submit_event(&event)
+}
+
+#[tracepoint(name = "tcp_probe", category = "tcp")]
+pub fn tcp_probe(_ctx: TracePointContext) -> u32 {
+    let event = TcpRttEvent {
+        kind: EventKind::TcpRtt as u8,
+        _pad0: [0; 3],
+        pid: current_pid(),
+        tgid: current_tgid(),
+        ifindex: 0,
+        rtt_usec: 150,
+        comm: current_comm(),
+        iface: default_iface(),
+    };
+    submit_event(&event)
+}
+
+#[tracepoint(name = "tcp_retransmit_skb", category = "tcp")]
+pub fn tcp_retransmit_skb(_ctx: TracePointContext) -> u32 {
+    let event = TcpRetransmitEvent {
+        kind: EventKind::TcpRetransmit as u8,
+        _pad0: [0; 3],
+        pid: current_pid(),
+        tgid: current_tgid(),
+        ifindex: 0,
+        comm: current_comm(),
+        iface: default_iface(),
+    };
+    submit_event(&event)
+}
+
+#[tracepoint(name = "block_rq_issue", category = "block")]
+pub fn block_rq_issue(_ctx: TracePointContext) -> u32 {
+    let event = DiskIoEvent {
+        kind: EventKind::DiskIo as u8,
+        op: DiskOp::Read as u8,
+        _pad0: [0; 2],
+        pid: current_pid(),
+        tgid: current_tgid(),
+        dev_major: 8,
+        dev_minor: 0,
+        bytes: 4096,
+        latency_usec: 100,
+        queue_depth: 1,
+        comm: current_comm(),
+    };
+    submit_event(&event)
+}
+
+#[tracepoint(name = "block_rq_complete", category = "block")]
+pub fn block_rq_complete(_ctx: TracePointContext) -> u32 {
+    let event = DiskIoEvent {
+        kind: EventKind::DiskIo as u8,
+        op: DiskOp::Write as u8,
+        _pad0: [0; 2],
+        pid: current_pid(),
+        tgid: current_tgid(),
+        dev_major: 8,
+        dev_minor: 0,
+        bytes: 4096,
+        latency_usec: 250,
+        queue_depth: 0,
         comm: current_comm(),
     };
     submit_event(&event)
@@ -158,6 +258,16 @@ fn current_tgid() -> u32 {
 #[inline(always)]
 fn current_comm() -> [u8; COMM_LEN] {
     bpf_get_current_comm().unwrap_or([0u8; COMM_LEN])
+}
+
+#[inline(always)]
+fn default_iface() -> [u8; IFACE_LEN] {
+    let mut iface = [0u8; IFACE_LEN];
+    iface[0] = b'e';
+    iface[1] = b't';
+    iface[2] = b'h';
+    iface[3] = b'0';
+    iface
 }
 
 #[panic_handler]

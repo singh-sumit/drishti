@@ -64,7 +64,7 @@ pub async fn run(options: RunOptions) -> Result<()> {
     let (shutdown_tx, shutdown_rx) = watch::channel(false);
 
     if options.once {
-        loader::emit_synthetic_once(&event_tx).await?;
+        loader::emit_synthetic_once(&event_tx, &config).await?;
         drop(event_tx);
         collectors::drain_events_once(event_rx, metrics.clone()).await;
 

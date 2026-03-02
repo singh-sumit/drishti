@@ -28,6 +28,27 @@ pub struct LifecycleLabels {
     pub comm: String,
 }
 
+#[derive(Clone, Debug, Hash, PartialEq, Eq, EncodeLabelSet)]
+pub struct NetLabels {
+    pub pid: u32,
+    pub comm: String,
+    pub ifindex: u32,
+    pub iface: String,
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq, EncodeLabelSet)]
+pub struct DiskProcLabels {
+    pub pid: u32,
+    pub comm: String,
+    pub device: String,
+    pub op: String,
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq, EncodeLabelSet)]
+pub struct DiskDeviceLabels {
+    pub device: String,
+}
+
 pub struct AppMetrics {
     registry: Mutex<Registry>,
     series_limiter: SeriesLimiter,
@@ -42,6 +63,17 @@ pub struct AppMetrics {
     mem_available_bytes: Gauge,
     mem_cache_bytes: Gauge,
     mem_total_bytes: Gauge,
+    net_tx_bytes_total: Family<NetLabels, Counter>,
+    net_rx_bytes_total: Family<NetLabels, Counter>,
+    net_tx_packets_total: Family<NetLabels, Counter>,
+    net_rx_packets_total: Family<NetLabels, Counter>,
+    net_tcp_rtt_usec: Family<NetLabels, Histogram>,
+    net_tcp_retransmits_total: Family<NetLabels, Counter>,
+    disk_read_bytes_total: Family<DiskProcLabels, Counter>,
+    disk_write_bytes_total: Family<DiskProcLabels, Counter>,
+    disk_iops_total: Family<DiskDeviceLabels, Counter>,
+    disk_io_latency_usec: Family<DiskDeviceLabels, Histogram>,
+    disk_queue_depth: Family<DiskDeviceLabels, Gauge>,
     scrape_duration_ms: Histogram,
     series_dropped_total: Counter,
     loader_failures_total: Counter,
@@ -63,6 +95,19 @@ impl AppMetrics {
         let mem_available_bytes = Gauge::default();
         let mem_cache_bytes = Gauge::default();
         let mem_total_bytes = Gauge::default();
+        let net_tx_bytes_total = Family::default();
+        let net_rx_bytes_total = Family::default();
+        let net_tx_packets_total = Family::default();
+        let net_rx_packets_total = Family::default();
+        let net_tcp_rtt_usec: Family<NetLabels, Histogram> =
+            Family::new_with_constructor(network_rtt_histogram as fn() -> Histogram);
+        let net_tcp_retransmits_total = Family::default();
+        let disk_read_bytes_total = Family::default();
+        let disk_write_bytes_total = Family::default();
+        let disk_iops_total = Family::default();
+        let disk_io_latency_usec: Family<DiskDeviceLabels, Histogram> =
+            Family::new_with_constructor(disk_latency_histogram as fn() -> Histogram);
+        let disk_queue_depth = Family::default();
         let scrape_duration_ms = Histogram::new(exponential_buckets(1.0, 2.0, 12));
         let series_dropped_total = Counter::default();
         let loader_failures_total = Counter::default();
@@ -123,6 +168,61 @@ impl AppMetrics {
             mem_total_bytes.clone(),
         );
         registry.register(
+            "drishti_net_tx_bytes",
+            "Transmitted bytes per process and interface",
+            net_tx_bytes_total.clone(),
+        );
+        registry.register(
+            "drishti_net_rx_bytes",
+            "Received bytes per process and interface",
+            net_rx_bytes_total.clone(),
+        );
+        registry.register(
+            "drishti_net_tx_packets",
+            "Transmitted packets per process and interface",
+            net_tx_packets_total.clone(),
+        );
+        registry.register(
+            "drishti_net_rx_packets",
+            "Received packets per process and interface",
+            net_rx_packets_total.clone(),
+        );
+        registry.register(
+            "drishti_net_tcp_rtt_usec",
+            "TCP round-trip-time observations in microseconds",
+            net_tcp_rtt_usec.clone(),
+        );
+        registry.register(
+            "drishti_net_tcp_retransmits",
+            "TCP retransmission events",
+            net_tcp_retransmits_total.clone(),
+        );
+        registry.register(
+            "drishti_disk_read_bytes",
+            "Disk read bytes per process and device",
+            disk_read_bytes_total.clone(),
+        );
+        registry.register(
+            "drishti_disk_write_bytes",
+            "Disk write bytes per process and device",
+            disk_write_bytes_total.clone(),
+        );
+        registry.register(
+            "drishti_disk_iops",
+            "Disk I/O operations per device",
+            disk_iops_total.clone(),
+        );
+        registry.register(
+            "drishti_disk_io_latency_usec",
+            "Disk I/O completion latency per device in microseconds",
+            disk_io_latency_usec.clone(),
+        );
+        registry.register(
+            "drishti_disk_queue_depth",
+            "In-flight disk requests per device",
+            disk_queue_depth.clone(),
+        );
+        registry.register(
             "drishti_collect_scrape_duration_ms",
             "Time spent collecting memory snapshots",
             scrape_duration_ms.clone(),
@@ -152,6 +252,17 @@ impl AppMetrics {
             mem_available_bytes,
             mem_cache_bytes,
             mem_total_bytes,
+            net_tx_bytes_total,
+            net_rx_bytes_total,
+            net_tx_packets_total,
+            net_rx_packets_total,
+            net_tcp_rtt_usec,
+            net_tcp_retransmits_total,
+            disk_read_bytes_total,
+            disk_write_bytes_total,
+            disk_iops_total,
+            disk_io_latency_usec,
+            disk_queue_depth,
             scrape_duration_ms,
             series_dropped_total,
             loader_failures_total,
@@ -202,6 +313,130 @@ impl AppMetrics {
 
         if self.allow_series("drishti_mem_oom_kills", &labels) {
             self.mem_oom_kills_total.get_or_create(&labels).inc();
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn record_net_tx(
+        &self,
+        pid: u32,
+        comm: &str,
+        ifindex: u32,
+        iface: &str,
+        bytes: u64,
+        packets: u64,
+    ) {
+        let labels = NetLabels {
+            pid,
+            comm: normalize_comm(comm),
+            ifindex,
+            iface: normalize_interface(iface, ifindex),
+        };
+
+        if self.allow_series("drishti_net_tx_bytes", &labels) {
+            self.net_tx_bytes_total.get_or_create(&labels).inc_by(bytes);
+            self.net_tx_packets_total
+                .get_or_create(&labels)
+                .inc_by(packets);
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn record_net_rx(
+        &self,
+        pid: u32,
+        comm: &str,
+        ifindex: u32,
+        iface: &str,
+        bytes: u64,
+        packets: u64,
+    ) {
+        let labels = NetLabels {
+            pid,
+            comm: normalize_comm(comm),
+            ifindex,
+            iface: normalize_interface(iface, ifindex),
+        };
+
+        if self.allow_series("drishti_net_rx_bytes", &labels) {
+            self.net_rx_bytes_total.get_or_create(&labels).inc_by(bytes);
+            self.net_rx_packets_total
+                .get_or_create(&labels)
+                .inc_by(packets);
+        }
+    }
+
+    pub fn record_tcp_rtt(&self, pid: u32, comm: &str, ifindex: u32, iface: &str, rtt_usec: u64) {
+        let labels = NetLabels {
+            pid,
+            comm: normalize_comm(comm),
+            ifindex,
+            iface: normalize_interface(iface, ifindex),
+        };
+
+        if self.allow_series("drishti_net_tcp_rtt_usec", &labels) {
+            self.net_tcp_rtt_usec
+                .get_or_create(&labels)
+                .observe(rtt_usec as f64);
+        }
+    }
+
+    pub fn record_tcp_retransmit(&self, pid: u32, comm: &str, ifindex: u32, iface: &str) {
+        let labels = NetLabels {
+            pid,
+            comm: normalize_comm(comm),
+            ifindex,
+            iface: normalize_interface(iface, ifindex),
+        };
+
+        if self.allow_series("drishti_net_tcp_retransmits", &labels) {
+            self.net_tcp_retransmits_total.get_or_create(&labels).inc();
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn record_disk_io(
+        &self,
+        pid: u32,
+        comm: &str,
+        dev_major: u32,
+        dev_minor: u32,
+        operation: &str,
+        bytes: u64,
+        latency_usec: u64,
+        queue_depth: u32,
+    ) {
+        let device = normalize_device(&format!("{dev_major}:{dev_minor}"));
+        let op = normalize_op(operation);
+
+        let proc_labels = DiskProcLabels {
+            pid,
+            comm: normalize_comm(comm),
+            device: device.clone(),
+            op: op.to_string(),
+        };
+        let device_labels = DiskDeviceLabels { device };
+
+        if op == "read" {
+            if self.allow_series("drishti_disk_read_bytes", &proc_labels) {
+                self.disk_read_bytes_total
+                    .get_or_create(&proc_labels)
+                    .inc_by(bytes);
+            }
+        } else if op == "write" && self.allow_series("drishti_disk_write_bytes", &proc_labels) {
+            self.disk_write_bytes_total
+                .get_or_create(&proc_labels)
+                .inc_by(bytes);
+        }
+
+        if self.allow_series("drishti_disk_iops", &device_labels) {
+            self.disk_iops_total.get_or_create(&device_labels).inc();
+            self.disk_io_latency_usec
+                .get_or_create(&device_labels)
+                .observe(latency_usec as f64);
+            self.disk_queue_depth
+                .get_or_create(&device_labels)
+                .set(i64::from(queue_depth));
         }
     }
 
@@ -304,6 +539,14 @@ impl SeriesLimiter {
     }
 }
 
+fn network_rtt_histogram() -> Histogram {
+    Histogram::new(exponential_buckets(10.0, 2.0, 8))
+}
+
+fn disk_latency_histogram() -> Histogram {
+    Histogram::new(exponential_buckets(10.0, 2.0, 10))
+}
+
 fn normalize_comm(comm: &str) -> String {
     let mut normalized = String::with_capacity(comm.len());
     for ch in comm.chars() {
@@ -316,6 +559,44 @@ fn normalize_comm(comm: &str) -> String {
         "unknown".to_string()
     } else {
         normalized
+    }
+}
+
+fn normalize_interface(iface: &str, ifindex: u32) -> String {
+    let mut normalized = String::with_capacity(iface.len());
+    for ch in iface.chars() {
+        if ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' || ch == '.' {
+            normalized.push(ch);
+        }
+    }
+
+    if normalized.is_empty() {
+        format!("if{ifindex}")
+    } else {
+        normalized
+    }
+}
+
+fn normalize_device(device: &str) -> String {
+    let mut normalized = String::with_capacity(device.len());
+    for ch in device.chars() {
+        if ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' || ch == '.' || ch == ':' {
+            normalized.push(ch);
+        }
+    }
+
+    if normalized.is_empty() {
+        "unknown".to_string()
+    } else {
+        normalized
+    }
+}
+
+fn normalize_op(operation: &str) -> &'static str {
+    match operation {
+        "read" => "read",
+        "write" => "write",
+        _ => "unknown",
     }
 }
 
@@ -346,5 +627,27 @@ mod tests {
                 |line| line.starts_with("drishti_series_dropped_total") && line.ends_with(" 1")
             )
         );
+    }
+
+    #[test]
+    fn record_network_and_disk_metrics() {
+        let metrics = AppMetrics::new(10_000);
+        metrics.record_net_tx(42, "proc", 2, "eth0", 1000, 10);
+        metrics.record_net_rx(42, "proc", 2, "eth0", 2000, 20);
+        metrics.record_tcp_rtt(42, "proc", 2, "eth0", 55);
+        metrics.record_tcp_retransmit(42, "proc", 2, "eth0");
+        metrics.record_disk_io(42, "proc", 8, 0, "read", 4096, 120, 3);
+        metrics.record_disk_io(42, "proc", 8, 0, "write", 2048, 90, 2);
+
+        let rendered = metrics.render().expect("render should succeed");
+        assert!(rendered.contains("drishti_net_tx_bytes_total{"));
+        assert!(rendered.contains("drishti_net_rx_bytes_total{"));
+        assert!(rendered.contains("drishti_net_tcp_rtt_usec_sum"));
+        assert!(rendered.contains("drishti_net_tcp_retransmits_total{"));
+        assert!(rendered.contains("drishti_disk_read_bytes_total{"));
+        assert!(rendered.contains("drishti_disk_write_bytes_total{"));
+        assert!(rendered.contains("drishti_disk_iops_total{"));
+        assert!(rendered.contains("drishti_disk_io_latency_usec_sum{"));
+        assert!(rendered.contains("drishti_disk_queue_depth{"));
     }
 }
