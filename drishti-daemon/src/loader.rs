@@ -336,25 +336,37 @@ async fn run_synthetic_stream(
                 }
 
                 if disk_enabled {
-                    let op = if tick % 2 == 0 {
-                        DiskOp::Read
-                    } else {
-                        DiskOp::Write
-                    };
+                    event_tx
+                        .send(ObservabilityEvent::DiskIo(DiskIoEvent {
+                            kind: EventKind::DiskIo as u8,
+                            op: DiskOp::Read as u8,
+                            _pad0: [0; 2],
+                            pid: 1200,
+                            tgid: 1200,
+                            dev_major: 8,
+                            dev_minor: 0,
+                            bytes: 4096 + tick,
+                            latency_usec: 120 + tick,
+                            queue_depth: (tick % 8) as u32,
+                            comm: fixed_from_str::<COMM_LEN>("synthetic-disk"),
+                        }))
+                        .await?;
 
-                    event_tx.send(ObservabilityEvent::DiskIo(DiskIoEvent {
-                        kind: EventKind::DiskIo as u8,
-                        op: op as u8,
-                        _pad0: [0; 2],
-                        pid: 1200,
-                        tgid: 1200,
-                        dev_major: 8,
-                        dev_minor: 0,
-                        bytes: 4096 + tick,
-                        latency_usec: 120 + tick,
-                        queue_depth: (tick % 8) as u32,
-                        comm: fixed_from_str::<COMM_LEN>("synthetic-disk"),
-                    })).await?;
+                    event_tx
+                        .send(ObservabilityEvent::DiskIo(DiskIoEvent {
+                            kind: EventKind::DiskIo as u8,
+                            op: DiskOp::Write as u8,
+                            _pad0: [0; 2],
+                            pid: 1200,
+                            tgid: 1200,
+                            dev_major: 8,
+                            dev_minor: 0,
+                            bytes: 2048 + tick,
+                            latency_usec: 140 + tick,
+                            queue_depth: ((tick + 1) % 8) as u32,
+                            comm: fixed_from_str::<COMM_LEN>("synthetic-disk"),
+                        }))
+                        .await?;
                 }
             }
         }
