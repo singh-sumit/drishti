@@ -249,6 +249,11 @@ fn build_qemu_binaries(arch: QemuArch) -> Result<()> {
     if build_tool == "cargo" {
         ensure_rust_target_installed(target)?;
     }
+    let embedded_bpf_path = if build_tool == "cross" {
+        to_cross_container_path(&ebpf_object)?
+    } else {
+        ebpf_object
+    };
 
     let mut command = Command::new(&build_tool);
     command.args([
@@ -265,7 +270,7 @@ fn build_qemu_binaries(arch: QemuArch) -> Result<()> {
         "--bin",
         "qemu_smoke",
     ]);
-    command.env("DRISHTI_EMBEDDED_BPF_PATH", &ebpf_object);
+    command.env("DRISHTI_EMBEDDED_BPF_PATH", &embedded_bpf_path);
 
     let status = command
         .status()
@@ -276,6 +281,19 @@ fn build_qemu_binaries(arch: QemuArch) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn to_cross_container_path(host_path: &Path) -> Result<PathBuf> {
+    let root = workspace_root();
+    let relative = host_path.strip_prefix(&root).with_context(|| {
+        format!(
+            "failed to map {} into cross container path; expected it under workspace {}",
+            host_path.display(),
+            root.display()
+        )
+    })?;
+
+    Ok(Path::new("/project").join(relative))
 }
 
 fn ensure_rust_target_installed(target: &str) -> Result<()> {
