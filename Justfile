@@ -37,4 +37,4 @@ docs-build:
     cd drishti-docs && npm run build
 
 docs-verify:
-    cd drishti-docs && npm ci && npm run build
+    cd drishti-docs && npm ci && npm run check:mermaid && npm run build

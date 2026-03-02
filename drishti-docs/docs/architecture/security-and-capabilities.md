@@ -15,22 +15,22 @@ Drishti is designed to run with least privilege while still supporting eBPF atta
 
 ```mermaid
 flowchart TB
-  subgraph Host[Linux Host]
-    SD[systemd unit\ndrishti-daemon.service]
+  subgraph HOST["Linux Host"]
+    SD["systemd unit<br/>drishti-daemon.service"]
     DD[drishti-daemon]
     SD --> DD
   end
 
-  DD -->|:9090 /metrics| PR[Prometheus]
+  DD -->|":9090 /metrics"| PR[Prometheus]
   PR --> GF[Grafana]
 
-  subgraph Optional[Optional Validation Lane]
+  subgraph OPTIONAL["Optional Validation Lane"]
     Q[QEMU VM]
     T[Privileged smoke tests]
     Q --> T
   end
 
-  T -. validates .-> DD
+  T -. "validates" .-> DD
 ```
 
 ## Safety Controls

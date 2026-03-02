@@ -5,7 +5,7 @@ Type: `task`
 Status: `done`
 Milestone: `v0.4 Drishti QEMU CI`
 Labels: `docs, docusaurus, v0.4`
-Parent: `DRISHTI-130`
+Parent: `DRISHTI-093`
 Depends on: `DRISHTI-131`
 
 Create drishti-docs with TypeScript Docusaurus configuration, strict link checks, and Mermaid rendering support.

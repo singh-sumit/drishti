@@ -295,11 +295,11 @@
     },
     {
       "id": "DRISHTI-093",
-      "title": "Deferred: Cross-arch QEMU CI execution",
+      "title": "Cross-arch QEMU CI execution",
       "type": "task",
-      "labels": ["deferred", "qemu", "ci", "v0.4"],
+      "labels": ["qemu", "ci", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
-      "status": "planned",
+      "status": "in-progress",
       "depends_on": ["DRISHTI-001"],
       "body": "Run x86_64 and aarch64 integration checks under QEMU in CI."
     },
@@ -319,6 +319,7 @@
       "type": "task",
       "labels": ["docs", "docusaurus", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
+      "parent_id": "DRISHTI-093",
       "status": "done",
       "depends_on": ["DRISHTI-001"],
       "body": "Deliver the engineering documentation platform for Drishti with GitHub Pages deployment, architecture docs, and operating guidance."
@@ -329,7 +330,7 @@
       "type": "task",
       "labels": ["docs", "migration", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
-      "parent_id": "DRISHTI-130",
+      "parent_id": "DRISHTI-093",
       "status": "done",
       "depends_on": ["DRISHTI-130"],
       "body": "Move internal project docs paths to internal-docs and update CI, scripts, and references for canonical issue automation paths."
@@ -340,7 +341,7 @@
       "type": "task",
       "labels": ["docs", "docusaurus", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
-      "parent_id": "DRISHTI-130",
+      "parent_id": "DRISHTI-093",
       "status": "done",
       "depends_on": ["DRISHTI-131"],
       "body": "Create drishti-docs with TypeScript Docusaurus configuration, strict link checks, and Mermaid rendering support."
@@ -351,7 +352,7 @@
       "type": "task",
       "labels": ["docs", "architecture", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
-      "parent_id": "DRISHTI-130",
+      "parent_id": "DRISHTI-093",
       "status": "done",
       "depends_on": ["DRISHTI-132"],
       "body": "Author architecture, data pipeline, and spec alignment pages using internal-docs/aether-ebpf-observability-spec.docx as source of truth."
@@ -362,7 +363,7 @@
       "type": "task",
       "labels": ["docs", "operations", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
-      "parent_id": "DRISHTI-130",
+      "parent_id": "DRISHTI-093",
       "status": "done",
       "depends_on": ["DRISHTI-133"],
       "body": "Document quickstart, configuration, collector matrix, troubleshooting, and performance budget guidance."
@@ -373,7 +374,7 @@
       "type": "task",
       "labels": ["docs", "integrations", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
-      "parent_id": "DRISHTI-130",
+      "parent_id": "DRISHTI-093",
       "status": "done",
       "depends_on": ["DRISHTI-133"],
       "body": "Publish integration guides for Prometheus scraping, Grafana dashboards, and hardened systemd deployment."
@@ -384,7 +385,7 @@
       "type": "task",
       "labels": ["docs", "ci", "github-pages", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
-      "parent_id": "DRISHTI-130",
+      "parent_id": "DRISHTI-093",
       "status": "done",
       "depends_on": ["DRISHTI-132"],
       "body": "Add docs workflow to build on PRs and deploy GitHub Pages on main with required permissions and artifact upload steps."
@@ -395,7 +396,7 @@
       "type": "task",
       "labels": ["docs", "developer-experience", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
-      "parent_id": "DRISHTI-130",
+      "parent_id": "DRISHTI-093",
       "status": "done",
       "depends_on": ["DRISHTI-134"],
       "body": "Update repository onboarding to include docs development commands, internal docs location, and Rust API reference linkage."
@@ -406,10 +407,21 @@
       "type": "task",
       "labels": ["docs", "testing", "v0.4"],
       "milestone": "v0.4 Drishti QEMU CI",
-      "parent_id": "DRISHTI-130",
+      "parent_id": "DRISHTI-093",
       "status": "done",
       "depends_on": ["DRISHTI-135"],
       "body": "Capture validation results for rust checks and docs build checks, then finalize issue sync/closeout for the docs milestone."
+    },
+    {
+      "id": "DRISHTI-149",
+      "title": "Docs: Mermaid compatibility hardening and parser validation",
+      "type": "task",
+      "labels": ["docs", "testing", "v0.4"],
+      "milestone": "v0.4 Drishti QEMU CI",
+      "parent_id": "DRISHTI-093",
+      "status": "in-progress",
+      "depends_on": ["DRISHTI-130"],
+      "body": "Harden Mermaid diagram syntax for Docusaurus rendering compatibility and add automated parser checks in local and CI docs workflows."
     }
   ]
 }

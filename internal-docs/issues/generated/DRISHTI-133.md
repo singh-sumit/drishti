@@ -5,7 +5,7 @@ Type: `task`
 Status: `done`
 Milestone: `v0.4 Drishti QEMU CI`
 Labels: `docs, architecture, v0.4`
-Parent: `DRISHTI-130`
+Parent: `DRISHTI-093`
 Depends on: `DRISHTI-132`
 
 Author architecture, data pipeline, and spec alignment pages using internal-docs/aether-ebpf-observability-spec.docx as source of truth.

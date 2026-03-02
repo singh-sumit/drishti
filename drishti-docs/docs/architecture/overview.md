@@ -7,15 +7,15 @@ Drishti uses a layered model: shared ABI types, kernel probes, daemon collectors
 
 ```mermaid
 flowchart LR
-  K[Linux Kernel\ntracepoints/kprobes] --> E[eBPF Programs\ndrishti-ebpf]
-  E -->|ring buffer events| C[Collectors\ndrishti-daemon]
-  E -->|map snapshots| C
-  C --> A[Aggregator\nmetric families + cardinality guard]
-  A --> X[Exporter\n/metrics + /healthz]
+  K["Linux Kernel<br/>tracepoints/kprobes"] --> E["eBPF Programs<br/>drishti-ebpf"]
+  E -->|"ring buffer events"| C["Collectors<br/>drishti-daemon"]
+  E -->|"map snapshots"| C
+  C --> A["Aggregator<br/>metric families + cardinality guard"]
+  A --> X["Exporter<br/>/metrics + /healthz"]
   X --> P[Prometheus]
   P --> G[Grafana Dashboards]
 
-  S[drishti-common\nrepr(C) event/map ABI] --> E
+  S["drishti-common<br/>repr C event/map ABI"] --> E
   S --> C
 ```
 

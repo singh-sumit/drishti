@@ -5,7 +5,7 @@ Type: `task`
 Status: `done`
 Milestone: `v0.4 Drishti QEMU CI`
 Labels: `docs, ci, github-pages, v0.4`
-Parent: `DRISHTI-130`
+Parent: `DRISHTI-093`
 Depends on: `DRISHTI-132`
 
 Add docs workflow to build on PRs and deploy GitHub Pages on main with required permissions and artifact upload steps.

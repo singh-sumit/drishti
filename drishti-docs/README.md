@@ -20,6 +20,7 @@ With `baseUrl=/drishti/`, local preview routes are served under:
 
 ```bash
 npm ci
+npm run check:mermaid
 npm run build
 ```
 
