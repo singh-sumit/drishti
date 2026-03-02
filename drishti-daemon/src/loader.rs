@@ -559,7 +559,15 @@ mod ebpf_runtime {
             );
         }
 
-        Ebpf::load(BPF_BYTES).context("failed to load embedded eBPF object")
+        // Keep an aligned view for parsers that assume natural alignment on strict-arch guests.
+        let align = std::mem::align_of::<u64>();
+        let mut storage = vec![0_u8; BPF_BYTES.len() + align];
+        let base = storage.as_ptr() as usize;
+        let offset = (align - (base % align)) % align;
+        let aligned = &mut storage[offset..offset + BPF_BYTES.len()];
+        aligned.copy_from_slice(BPF_BYTES);
+
+        Ebpf::load(aligned).context("failed to load embedded eBPF object")
     }
 
     fn attach_tracepoint(
