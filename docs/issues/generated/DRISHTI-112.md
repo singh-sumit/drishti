@@ -9,6 +9,3 @@ Parent: `DRISHTI-091`
 Depends on: `DRISHTI-111`
 
 Consume disk events, aggregate counters/histograms/gauges, and expose drishti_disk_* metric families.
-
-## Dependency Links
-- #22

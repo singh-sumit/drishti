@@ -234,7 +234,7 @@
       "type": "task",
       "labels": ["deferred", "syscall", "v0.3"],
       "milestone": "v0.3 Drishti Syscalls",
-      "status": "in-progress",
+      "status": "done",
       "depends_on": ["DRISHTI-001"],
       "body": "Implement raw syscall enter/exit tracing with latency histograms and error counters."
     },
@@ -245,7 +245,7 @@
       "labels": ["syscall", "rust", "v0.3"],
       "milestone": "v0.3 Drishti Syscalls",
       "parent_id": "DRISHTI-092",
-      "status": "in-progress",
+      "status": "done",
       "depends_on": ["DRISHTI-092"],
       "body": "Add syscall event structs in drishti-common plus collector config defaults and environment overrides."
     },
@@ -256,7 +256,7 @@
       "labels": ["syscall", "ebpf", "v0.3"],
       "milestone": "v0.3 Drishti Syscalls",
       "parent_id": "DRISHTI-092",
-      "status": "in-progress",
+      "status": "done",
       "depends_on": ["DRISHTI-120"],
       "body": "Implement raw_syscalls sys_enter/sys_exit tracing with bounded start timestamp maps and ring buffer events."
     },
@@ -267,7 +267,7 @@
       "labels": ["syscall", "daemon", "metrics", "v0.3"],
       "milestone": "v0.3 Drishti Syscalls",
       "parent_id": "DRISHTI-092",
-      "status": "in-progress",
+      "status": "done",
       "depends_on": ["DRISHTI-121"],
       "body": "Consume syscall events, export count/error/latency metrics, and enforce top-N + max_series cardinality controls."
     },
@@ -278,7 +278,7 @@
       "labels": ["syscall", "testing", "v0.3"],
       "milestone": "v0.3 Drishti Syscalls",
       "parent_id": "DRISHTI-092",
-      "status": "in-progress",
+      "status": "done",
       "depends_on": ["DRISHTI-122"],
       "body": "Add unit/integration and gated privileged smoke coverage for syscall collection and exporter paths."
     },
@@ -289,7 +289,7 @@
       "labels": ["syscall", "grafana", "docs", "v0.3"],
       "milestone": "v0.3 Drishti Syscalls",
       "parent_id": "DRISHTI-092",
-      "status": "in-progress",
+      "status": "done",
       "depends_on": ["DRISHTI-123"],
       "body": "Update Grafana dashboards and setup documentation for syscall metrics and configuration controls."
     },

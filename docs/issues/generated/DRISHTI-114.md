@@ -9,6 +9,3 @@ Parent: `DRISHTI-091`
 Depends on: `DRISHTI-113`
 
 Update configuration docs and Grafana dashboard panels for disk telemetry metrics.
-
-## Dependency Links
-- #24

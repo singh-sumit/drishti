@@ -87,3 +87,9 @@ gh issue edit --repo singh-sumit/drishti 14 --title 'Deferred: musl static optim
 # close when mapped: DRISHTI-112 -> gh issue close --repo singh-sumit/drishti <issue-number>
 # close when mapped: DRISHTI-113 -> gh issue close --repo singh-sumit/drishti <issue-number>
 # close when mapped: DRISHTI-114 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-092 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-120 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-121 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-122 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-123 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-124 -> gh issue close --repo singh-sumit/drishti <issue-number>
