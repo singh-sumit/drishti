@@ -45,9 +45,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang llvm lld
       - name: Install bpf-linker
-        run: cargo install bpf-linker
+        run: cargo +nightly install bpf-linker
       - name: Build eBPF object
-        run: cargo run -p xtask -- build-ebpf
+        run: cargo +nightly run -p xtask -- build-ebpf
 
   privileged-smoke:
     if: github.event_name == 'workflow_dispatch'
