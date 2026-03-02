@@ -9,6 +9,3 @@ Parent: `DRISHTI-090`
 Depends on: `DRISHTI-103`
 
 Update configuration docs and Grafana dashboard panels for network telemetry metrics.
-
-## Dependency Links
-- #19

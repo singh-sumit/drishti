@@ -8,6 +8,3 @@ Labels: `ci, testing, v0.1`
 Depends on: `DRISHTI-060`
 
 Add CI jobs for fmt/clippy/tests, eBPF build path, and optional privileged smoke test execution.
-
-## Dependency Links
-- #7

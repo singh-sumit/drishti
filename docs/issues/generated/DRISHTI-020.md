@@ -8,6 +8,3 @@ Labels: `rust, ebpf, v0.1`
 Depends on: `DRISHTI-010`
 
 Define `#[repr(C)]` event and map structs in `drishti-common` for CPU, process lifecycle, and OOM paths.
-
-## Dependency Links
-- #2

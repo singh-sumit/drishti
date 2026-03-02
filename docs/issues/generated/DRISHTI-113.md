@@ -9,6 +9,3 @@ Parent: `DRISHTI-091`
 Depends on: `DRISHTI-112`
 
 Add unit/integration tests and gated privileged checks for disk collectors.
-
-## Dependency Links
-- #23

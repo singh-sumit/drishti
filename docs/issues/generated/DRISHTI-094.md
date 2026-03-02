@@ -8,6 +8,3 @@ Labels: `deferred, build, optimization, v0.5`
 Depends on: `DRISHTI-001`
 
 Tune release settings and cross-build pipeline for static binaries and strict size targets.
-
-## Dependency Links
-- #1

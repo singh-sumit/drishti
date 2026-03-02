@@ -9,6 +9,3 @@ Parent: `DRISHTI-090`
 Depends on: `DRISHTI-101`
 
 Consume network events, aggregate counters/histograms, and expose drishti_net_* metric families.
-
-## Dependency Links
-- #17

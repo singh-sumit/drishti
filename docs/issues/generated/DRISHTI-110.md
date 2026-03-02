@@ -9,6 +9,3 @@ Parent: `DRISHTI-091`
 Depends on: `DRISHTI-091`
 
 Add disk event structs in drishti-common, collector config keys, env overrides, and defaults.
-
-## Dependency Links
-- #11

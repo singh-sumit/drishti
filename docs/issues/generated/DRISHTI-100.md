@@ -9,6 +9,3 @@ Parent: `DRISHTI-090`
 Depends on: `DRISHTI-090`
 
 Add network event structs in drishti-common, collector config keys, env overrides, and validation defaults.
-
-## Dependency Links
-- #10
