@@ -86,12 +86,24 @@ jobs:
           )
 
           apt-get "${APT_OPTS[@]}" update
+          IMAGE_PKG="$(
+            apt-cache "${APT_OPTS[@]}" -o "APT::Architecture=arm64" search '^linux-image-[0-9].*-generic$' \
+              | awk '{print $1}' \
+              | sort -V \
+              | tail -n 1
+          )"
+
+          if [[ -z "$IMAGE_PKG" ]]; then
+            echo "failed to resolve arm64 linux-image package from ports.ubuntu.com" >&2
+            exit 1
+          fi
+
           (
             cd "$APT_ROOT"
-            apt-get "${APT_OPTS[@]}" -o "APT::Architecture=arm64" download linux-image-virtual:arm64
+            apt-get "${APT_OPTS[@]}" -o "APT::Architecture=arm64" download "${IMAGE_PKG}:arm64"
           )
 
-          KERNEL_DEB="$(ls -1 "$APT_ROOT"/linux-image-virtual_*_arm64.deb | head -n 1)"
+          KERNEL_DEB="$(ls -1 "$APT_ROOT"/"${IMAGE_PKG}"_*_arm64.deb | head -n 1)"
           echo "DRISHTI_QEMU_AARCH64_KERNEL_DEB=$KERNEL_DEB" >> "$GITHUB_ENV"
       - name: Run aarch64 QEMU CI lane
         env:
