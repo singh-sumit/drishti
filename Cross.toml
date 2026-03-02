@@ -1,5 +1,5 @@
 [build.env]
-passthrough = ["DRISHTI_EMBEDDED_BPF_PATH"]
+passthrough = ["DRISHTI_EMBEDDED_BPF_PATH", "DRISHTI_EMBEDDED_BPF_META"]
 
 [target.aarch64-unknown-linux-musl]
 image = "ghcr.io/cross-rs/aarch64-unknown-linux-musl:edge"
