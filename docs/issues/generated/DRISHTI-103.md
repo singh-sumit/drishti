@@ -2,7 +2,7 @@
 
 Local ID: `DRISHTI-103`
 Type: `task`
-Status: `planned`
+Status: `done`
 Milestone: `v0.2 Drishti Network+Disk`
 Labels: `network, testing, v0.2`
 Parent: `DRISHTI-090`

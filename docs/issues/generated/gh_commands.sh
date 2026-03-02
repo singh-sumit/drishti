@@ -46,17 +46,17 @@ gh issue edit --repo singh-sumit/drishti 7 --title 'Add Prometheus exporter and 
 gh issue edit --repo singh-sumit/drishti 8 --title 'Provision Grafana dashboards and deployment files' --body-file 'docs/issues/generated/DRISHTI-070.md' --milestone 'v0.1 Drishti Core'
 gh issue edit --repo singh-sumit/drishti 9 --title 'Implement CI workflows and gated privileged smoke tests' --body-file 'docs/issues/generated/DRISHTI-080.md' --milestone 'v0.1 Drishti Core'
 gh issue edit --repo singh-sumit/drishti 10 --title 'Deferred: Network telemetry collector' --body-file 'docs/issues/generated/DRISHTI-090.md' --milestone 'v0.2 Drishti Network+Disk'
-gh issue create --repo singh-sumit/drishti --title 'Network: ABI types and config surface' --body-file 'docs/issues/generated/DRISHTI-100.md' --label 'network' --label 'rust' --label 'v0.2' --milestone 'v0.2 Drishti Network+Disk'
-gh issue create --repo singh-sumit/drishti --title 'Network: eBPF probe and ring buffer events' --body-file 'docs/issues/generated/DRISHTI-101.md' --label 'network' --label 'ebpf' --label 'v0.2' --milestone 'v0.2 Drishti Network+Disk'
-gh issue create --repo singh-sumit/drishti --title 'Network: daemon aggregation and exporter metrics' --body-file 'docs/issues/generated/DRISHTI-102.md' --label 'network' --label 'daemon' --label 'metrics' --label 'v0.2' --milestone 'v0.2 Drishti Network+Disk'
-gh issue create --repo singh-sumit/drishti --title 'Network: tests and privileged smoke coverage' --body-file 'docs/issues/generated/DRISHTI-103.md' --label 'network' --label 'testing' --label 'v0.2' --milestone 'v0.2 Drishti Network+Disk'
-gh issue create --repo singh-sumit/drishti --title 'Network: docs and dashboard updates' --body-file 'docs/issues/generated/DRISHTI-104.md' --label 'network' --label 'grafana' --label 'docs' --label 'v0.2' --milestone 'v0.2 Drishti Network+Disk'
+gh issue edit --repo singh-sumit/drishti 16 --title 'Network: ABI types and config surface' --body-file 'docs/issues/generated/DRISHTI-100.md' --milestone 'v0.2 Drishti Network+Disk'
+gh issue edit --repo singh-sumit/drishti 17 --title 'Network: eBPF probe and ring buffer events' --body-file 'docs/issues/generated/DRISHTI-101.md' --milestone 'v0.2 Drishti Network+Disk'
+gh issue edit --repo singh-sumit/drishti 18 --title 'Network: daemon aggregation and exporter metrics' --body-file 'docs/issues/generated/DRISHTI-102.md' --milestone 'v0.2 Drishti Network+Disk'
+gh issue edit --repo singh-sumit/drishti 19 --title 'Network: tests and privileged smoke coverage' --body-file 'docs/issues/generated/DRISHTI-103.md' --milestone 'v0.2 Drishti Network+Disk'
+gh issue edit --repo singh-sumit/drishti 20 --title 'Network: docs and dashboard updates' --body-file 'docs/issues/generated/DRISHTI-104.md' --milestone 'v0.2 Drishti Network+Disk'
 gh issue edit --repo singh-sumit/drishti 11 --title 'Deferred: Disk I/O collector' --body-file 'docs/issues/generated/DRISHTI-091.md' --milestone 'v0.2 Drishti Network+Disk'
-gh issue create --repo singh-sumit/drishti --title 'Disk: ABI types and config surface' --body-file 'docs/issues/generated/DRISHTI-110.md' --label 'disk' --label 'rust' --label 'v0.2' --milestone 'v0.2 Drishti Network+Disk'
-gh issue create --repo singh-sumit/drishti --title 'Disk: eBPF block I/O probes' --body-file 'docs/issues/generated/DRISHTI-111.md' --label 'disk' --label 'ebpf' --label 'v0.2' --milestone 'v0.2 Drishti Network+Disk'
-gh issue create --repo singh-sumit/drishti --title 'Disk: daemon aggregation and exporter metrics' --body-file 'docs/issues/generated/DRISHTI-112.md' --label 'disk' --label 'daemon' --label 'metrics' --label 'v0.2' --milestone 'v0.2 Drishti Network+Disk'
-gh issue create --repo singh-sumit/drishti --title 'Disk: tests and privileged smoke coverage' --body-file 'docs/issues/generated/DRISHTI-113.md' --label 'disk' --label 'testing' --label 'v0.2' --milestone 'v0.2 Drishti Network+Disk'
-gh issue create --repo singh-sumit/drishti --title 'Disk: docs and dashboard updates' --body-file 'docs/issues/generated/DRISHTI-114.md' --label 'disk' --label 'grafana' --label 'docs' --label 'v0.2' --milestone 'v0.2 Drishti Network+Disk'
+gh issue edit --repo singh-sumit/drishti 21 --title 'Disk: ABI types and config surface' --body-file 'docs/issues/generated/DRISHTI-110.md' --milestone 'v0.2 Drishti Network+Disk'
+gh issue edit --repo singh-sumit/drishti 22 --title 'Disk: eBPF block I/O probes' --body-file 'docs/issues/generated/DRISHTI-111.md' --milestone 'v0.2 Drishti Network+Disk'
+gh issue edit --repo singh-sumit/drishti 23 --title 'Disk: daemon aggregation and exporter metrics' --body-file 'docs/issues/generated/DRISHTI-112.md' --milestone 'v0.2 Drishti Network+Disk'
+gh issue edit --repo singh-sumit/drishti 24 --title 'Disk: tests and privileged smoke coverage' --body-file 'docs/issues/generated/DRISHTI-113.md' --milestone 'v0.2 Drishti Network+Disk'
+gh issue edit --repo singh-sumit/drishti 25 --title 'Disk: docs and dashboard updates' --body-file 'docs/issues/generated/DRISHTI-114.md' --milestone 'v0.2 Drishti Network+Disk'
 gh issue edit --repo singh-sumit/drishti 12 --title 'Deferred: Syscall tracing collector' --body-file 'docs/issues/generated/DRISHTI-092.md' --milestone 'v0.3 Drishti Syscalls'
 gh issue edit --repo singh-sumit/drishti 13 --title 'Deferred: Cross-arch QEMU CI execution' --body-file 'docs/issues/generated/DRISHTI-093.md' --milestone 'v0.4 Drishti QEMU CI'
 gh issue edit --repo singh-sumit/drishti 14 --title 'Deferred: musl static optimization and size budgets' --body-file 'docs/issues/generated/DRISHTI-094.md' --milestone 'v0.5 Drishti Packaging'
@@ -70,3 +70,15 @@ gh issue edit --repo singh-sumit/drishti 14 --title 'Deferred: musl static optim
 # close when mapped: DRISHTI-060 -> gh issue close --repo singh-sumit/drishti <issue-number>
 # close when mapped: DRISHTI-070 -> gh issue close --repo singh-sumit/drishti <issue-number>
 # close when mapped: DRISHTI-080 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-090 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-100 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-101 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-102 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-103 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-104 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-091 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-110 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-111 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-112 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-113 -> gh issue close --repo singh-sumit/drishti <issue-number>
+# close when mapped: DRISHTI-114 -> gh issue close --repo singh-sumit/drishti <issue-number>

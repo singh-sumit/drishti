@@ -104,7 +104,7 @@
       "type": "task",
       "labels": ["deferred", "network", "v0.2"],
       "milestone": "v0.2 Drishti Network+Disk",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["DRISHTI-001"],
       "body": "Implement per-interface and per-process tx/rx telemetry and TCP RTT metrics in next milestone."
     },
@@ -115,7 +115,7 @@
       "labels": ["network", "rust", "v0.2"],
       "milestone": "v0.2 Drishti Network+Disk",
       "parent_id": "DRISHTI-090",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["DRISHTI-090"],
       "body": "Add network event structs in drishti-common, collector config keys, env overrides, and validation defaults."
     },
@@ -126,7 +126,7 @@
       "labels": ["network", "ebpf", "v0.2"],
       "milestone": "v0.2 Drishti Network+Disk",
       "parent_id": "DRISHTI-090",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["DRISHTI-100"],
       "body": "Implement verifier-safe network probe paths and event emission for tx/rx, RTT, and retransmit signals."
     },
@@ -137,7 +137,7 @@
       "labels": ["network", "daemon", "metrics", "v0.2"],
       "milestone": "v0.2 Drishti Network+Disk",
       "parent_id": "DRISHTI-090",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["DRISHTI-101"],
       "body": "Consume network events, aggregate counters/histograms, and expose drishti_net_* metric families."
     },
@@ -148,7 +148,7 @@
       "labels": ["network", "testing", "v0.2"],
       "milestone": "v0.2 Drishti Network+Disk",
       "parent_id": "DRISHTI-090",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["DRISHTI-102"],
       "body": "Add unit/integration tests and gated privileged checks for network collectors."
     },
@@ -159,7 +159,7 @@
       "labels": ["network", "grafana", "docs", "v0.2"],
       "milestone": "v0.2 Drishti Network+Disk",
       "parent_id": "DRISHTI-090",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["DRISHTI-103"],
       "body": "Update configuration docs and Grafana dashboard panels for network telemetry metrics."
     },
@@ -169,7 +169,7 @@
       "type": "task",
       "labels": ["deferred", "disk", "v0.2"],
       "milestone": "v0.2 Drishti Network+Disk",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["DRISHTI-001"],
       "body": "Implement block layer tracepoint collectors for throughput, latency, and queue depth."
     },
@@ -180,7 +180,7 @@
       "labels": ["disk", "rust", "v0.2"],
       "milestone": "v0.2 Drishti Network+Disk",
       "parent_id": "DRISHTI-091",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["DRISHTI-091"],
       "body": "Add disk event structs in drishti-common, collector config keys, env overrides, and defaults."
     },
@@ -191,7 +191,7 @@
       "labels": ["disk", "ebpf", "v0.2"],
       "milestone": "v0.2 Drishti Network+Disk",
       "parent_id": "DRISHTI-091",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["DRISHTI-110"],
       "body": "Implement bounded in-flight request maps and completion latency computation for block I/O telemetry."
     },
@@ -202,7 +202,7 @@
       "labels": ["disk", "daemon", "metrics", "v0.2"],
       "milestone": "v0.2 Drishti Network+Disk",
       "parent_id": "DRISHTI-091",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["DRISHTI-111"],
       "body": "Consume disk events, aggregate counters/histograms/gauges, and expose drishti_disk_* metric families."
     },
@@ -213,7 +213,7 @@
       "labels": ["disk", "testing", "v0.2"],
       "milestone": "v0.2 Drishti Network+Disk",
       "parent_id": "DRISHTI-091",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["DRISHTI-112"],
       "body": "Add unit/integration tests and gated privileged checks for disk collectors."
     },
@@ -224,7 +224,7 @@
       "labels": ["disk", "grafana", "docs", "v0.2"],
       "milestone": "v0.2 Drishti Network+Disk",
       "parent_id": "DRISHTI-091",
-      "status": "planned",
+      "status": "done",
       "depends_on": ["DRISHTI-113"],
       "body": "Update configuration docs and Grafana dashboard panels for disk telemetry metrics."
     },

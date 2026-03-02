@@ -2,7 +2,7 @@
 
 Local ID: `DRISHTI-114`
 Type: `task`
-Status: `planned`
+Status: `done`
 Milestone: `v0.2 Drishti Network+Disk`
 Labels: `disk, grafana, docs, v0.2`
 Parent: `DRISHTI-091`
