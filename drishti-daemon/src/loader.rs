@@ -1,0 +1,345 @@
+use std::time::Duration;
+
+use anyhow::Result;
+use drishti_common::{
+    COMM_LEN,
+    events::{
+        CpuRuntimeEvent, CpuWaitEvent, EventKind, OomKillEvent, ProcLifecycleEvent,
+        ProcLifecycleKind,
+    },
+};
+use tokio::{
+    sync::{mpsc, watch},
+    task::JoinHandle,
+};
+use tracing::{info, warn};
+
+use crate::{collectors::ObservabilityEvent, config::Config};
+
+pub async fn start(
+    config: Config,
+    event_tx: mpsc::Sender<ObservabilityEvent>,
+    shutdown_rx: watch::Receiver<bool>,
+    synthetic_events: bool,
+) -> Result<Vec<JoinHandle<Result<()>>>> {
+    if synthetic_events {
+        info!("starting synthetic eBPF event stream");
+        return Ok(vec![tokio::spawn(run_synthetic_stream(
+            event_tx,
+            shutdown_rx,
+            config.collectors.cpu,
+            config.collectors.process.enabled,
+            config.collectors.memory.track_oom,
+        ))]);
+    }
+
+    #[cfg(feature = "ebpf-runtime")]
+    {
+        return ebpf_runtime::start_real_ebpf(config, event_tx, shutdown_rx).await;
+    }
+
+    #[cfg(not(feature = "ebpf-runtime"))]
+    {
+        let _ = config;
+        let _ = event_tx;
+        let _ = shutdown_rx;
+        warn!("compiled without ebpf-runtime feature; running without kernel event collection");
+        Ok(Vec::new())
+    }
+}
+
+pub async fn emit_synthetic_once(event_tx: &mpsc::Sender<ObservabilityEvent>) -> Result<()> {
+    event_tx
+        .send(ObservabilityEvent::CpuRuntime(CpuRuntimeEvent {
+            kind: EventKind::CpuRuntime as u8,
+            _pad0: [0; 3],
+            pid: 4242,
+            tgid: 4242,
+            cpu: 0,
+            run_time_ns: 120_000,
+            comm: comm_to_fixed("synthetic-cpu"),
+        }))
+        .await?;
+
+    event_tx
+        .send(ObservabilityEvent::CpuWait(CpuWaitEvent {
+            kind: EventKind::CpuWait as u8,
+            _pad0: [0; 3],
+            pid: 4242,
+            tgid: 4242,
+            cpu: 0,
+            wait_time_ns: 64_000,
+            comm: comm_to_fixed("synthetic-cpu"),
+        }))
+        .await?;
+
+    event_tx
+        .send(ObservabilityEvent::ProcLifecycle(ProcLifecycleEvent {
+            kind: EventKind::ProcLifecycle as u8,
+            lifecycle: ProcLifecycleKind::Exec as u8,
+            _pad0: [0; 2],
+            pid: 4242,
+            tgid: 4242,
+            ppid: 1,
+            exit_code: 0,
+            comm: comm_to_fixed("synthetic-proc"),
+        }))
+        .await?;
+
+    event_tx
+        .send(ObservabilityEvent::OomKill(OomKillEvent {
+            kind: EventKind::OomKill as u8,
+            _pad0: [0; 3],
+            pid: 4242,
+            tgid: 4242,
+            pages: 1,
+            comm: comm_to_fixed("synthetic-oom"),
+        }))
+        .await?;
+
+    Ok(())
+}
+
+async fn run_synthetic_stream(
+    event_tx: mpsc::Sender<ObservabilityEvent>,
+    mut shutdown_rx: watch::Receiver<bool>,
+    cpu_enabled: bool,
+    process_enabled: bool,
+    oom_enabled: bool,
+) -> Result<()> {
+    let mut interval = tokio::time::interval(Duration::from_millis(250));
+    let mut tick: u64 = 0;
+
+    loop {
+        tokio::select! {
+            changed = shutdown_rx.changed() => {
+                if changed.is_ok() && *shutdown_rx.borrow() {
+                    break;
+                }
+            }
+            _ = interval.tick() => {
+                tick = tick.saturating_add(1);
+                if cpu_enabled {
+                    event_tx.send(ObservabilityEvent::CpuRuntime(CpuRuntimeEvent {
+                        kind: EventKind::CpuRuntime as u8,
+                        _pad0: [0; 3],
+                        pid: 1200,
+                        tgid: 1200,
+                        cpu: (tick % 2) as u32,
+                        run_time_ns: 100_000 + tick,
+                        comm: comm_to_fixed("synthetic-cpu"),
+                    })).await?;
+
+                    event_tx.send(ObservabilityEvent::CpuWait(CpuWaitEvent {
+                        kind: EventKind::CpuWait as u8,
+                        _pad0: [0; 3],
+                        pid: 1200,
+                        tgid: 1200,
+                        cpu: (tick % 2) as u32,
+                        wait_time_ns: 50_000 + tick,
+                        comm: comm_to_fixed("synthetic-cpu"),
+                    })).await?;
+                }
+
+                if process_enabled {
+                    event_tx.send(ObservabilityEvent::ProcLifecycle(ProcLifecycleEvent {
+                        kind: EventKind::ProcLifecycle as u8,
+                        lifecycle: ProcLifecycleKind::Fork as u8,
+                        _pad0: [0; 2],
+                        pid: 1200,
+                        tgid: 1200,
+                        ppid: 1,
+                        exit_code: 0,
+                        comm: comm_to_fixed("synthetic-proc"),
+                    })).await?;
+                }
+
+                if oom_enabled && tick % 8 == 0 {
+                    event_tx.send(ObservabilityEvent::OomKill(OomKillEvent {
+                        kind: EventKind::OomKill as u8,
+                        _pad0: [0; 3],
+                        pid: 1200,
+                        tgid: 1200,
+                        pages: 32,
+                        comm: comm_to_fixed("synthetic-oom"),
+                    })).await?;
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn comm_to_fixed(value: &str) -> [u8; COMM_LEN] {
+    let mut comm = [0u8; COMM_LEN];
+    let bytes = value.as_bytes();
+    let copy_len = bytes.len().min(COMM_LEN);
+    comm[..copy_len].copy_from_slice(&bytes[..copy_len]);
+    comm
+}
+
+#[cfg(feature = "ebpf-runtime")]
+mod ebpf_runtime {
+    use std::{mem, time::Duration};
+
+    use anyhow::{Context, Result};
+    use aya::{Ebpf, maps::ring_buf::RingBuf, programs::TracePoint};
+    use drishti_common::events::{
+        CpuRuntimeEvent, CpuWaitEvent, EventKind, OomKillEvent, ProcLifecycleEvent,
+    };
+    use tokio::{
+        sync::{mpsc, watch},
+        task::JoinHandle,
+    };
+    use tracing::{error, warn};
+
+    use crate::{collectors::ObservabilityEvent, config::Config};
+
+    pub(super) async fn start_real_ebpf(
+        config: Config,
+        event_tx: mpsc::Sender<ObservabilityEvent>,
+        shutdown_rx: watch::Receiver<bool>,
+    ) -> Result<Vec<JoinHandle<Result<()>>>> {
+        let mut bpf = load_bpf_object()?;
+
+        if config.collectors.cpu {
+            attach_tracepoint(&mut bpf, "sched_switch", "sched", "sched_switch")?;
+            attach_tracepoint(&mut bpf, "sched_wakeup", "sched", "sched_wakeup")?;
+        }
+
+        if config.collectors.process.enabled {
+            attach_tracepoint(
+                &mut bpf,
+                "sched_process_fork",
+                "sched",
+                "sched_process_fork",
+            )?;
+            attach_tracepoint(
+                &mut bpf,
+                "sched_process_exec",
+                "sched",
+                "sched_process_exec",
+            )?;
+            attach_tracepoint(
+                &mut bpf,
+                "sched_process_exit",
+                "sched",
+                "sched_process_exit",
+            )?;
+        }
+
+        if config.collectors.memory.track_oom {
+            if let Err(err) =
+                attach_tracepoint(&mut bpf, "oom_kill_process", "oom", "oom_kill_process")
+            {
+                warn!(error = %err, "OOM tracepoint not available on this kernel");
+            }
+        }
+
+        let mut ring = RingBuf::try_from(
+            bpf.map_mut("EVENTS")
+                .context("EVENTS map missing in eBPF object")?,
+        )
+        .context("failed to initialize ring buffer")?;
+
+        let mut shutdown_rx_for_thread = shutdown_rx.clone();
+        let handle = tokio::task::spawn_blocking(move || {
+            loop {
+                while let Some(item) = ring.next() {
+                    if let Some(event) = parse_ring_event(item.as_ref()) {
+                        if event_tx.blocking_send(event).is_err() {
+                            return Ok(());
+                        }
+                    }
+                }
+
+                if shutdown_rx_for_thread
+                    .has_changed()
+                    .map(|changed| changed && *shutdown_rx_for_thread.borrow_and_update())
+                    .unwrap_or(true)
+                {
+                    break;
+                }
+
+                std::thread::sleep(Duration::from_millis(20));
+            }
+
+            drop(bpf);
+            Ok(())
+        });
+
+        Ok(vec![handle])
+    }
+
+    fn load_bpf_object() -> Result<Ebpf> {
+        const BPF_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/drishti.bpf.o"));
+
+        if BPF_BYTES.is_empty() {
+            anyhow::bail!(
+                "embedded eBPF object is empty. Build with DRISHTI_EMBEDDED_BPF_PATH set to a compiled .bpf.o"
+            );
+        }
+
+        Ebpf::load(BPF_BYTES).context("failed to load embedded eBPF object")
+    }
+
+    fn attach_tracepoint(
+        bpf: &mut Ebpf,
+        program_name: &str,
+        category: &str,
+        name: &str,
+    ) -> Result<()> {
+        let program: &mut TracePoint = bpf
+            .program_mut(program_name)
+            .with_context(|| format!("missing eBPF program {program_name}"))?
+            .try_into()
+            .with_context(|| format!("program {program_name} is not a tracepoint"))?;
+
+        program
+            .load()
+            .with_context(|| format!("failed to load program {program_name}"))?;
+        program
+            .attach(category, name)
+            .with_context(|| format!("failed to attach {program_name} to {category}:{name}"))?;
+
+        Ok(())
+    }
+
+    fn parse_ring_event(payload: &[u8]) -> Option<ObservabilityEvent> {
+        let kind = *payload.first()?;
+        match kind {
+            x if x == EventKind::CpuRuntime as u8 => {
+                read_event::<CpuRuntimeEvent>(payload).map(ObservabilityEvent::CpuRuntime)
+            }
+            x if x == EventKind::CpuWait as u8 => {
+                read_event::<CpuWaitEvent>(payload).map(ObservabilityEvent::CpuWait)
+            }
+            x if x == EventKind::ProcLifecycle as u8 => {
+                read_event::<ProcLifecycleEvent>(payload).map(ObservabilityEvent::ProcLifecycle)
+            }
+            x if x == EventKind::OomKill as u8 => {
+                read_event::<OomKillEvent>(payload).map(ObservabilityEvent::OomKill)
+            }
+            _ => {
+                warn!(kind, "unknown event kind from ring buffer");
+                None
+            }
+        }
+    }
+
+    fn read_event<T: Copy>(payload: &[u8]) -> Option<T> {
+        if payload.len() < mem::size_of::<T>() {
+            error!(
+                expected = mem::size_of::<T>(),
+                got = payload.len(),
+                "ring buffer payload too small"
+            );
+            return None;
+        }
+
+        // Ring buffer events are plain #[repr(C)] structs from kernel memory.
+        let value = unsafe { std::ptr::read_unaligned(payload.as_ptr().cast::<T>()) };
+        Some(value)
+    }
+}

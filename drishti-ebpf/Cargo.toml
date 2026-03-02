@@ -1,0 +1,19 @@
+[package]
+name = "drishti-ebpf"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+default = []
+
+[target.'cfg(target_arch = "bpf")'.dependencies]
+aya-bpf = { package = "aya-ebpf", version = "0.1" }
+drishti-common = { path = "../drishti-common" }
+
+[lints.rust]
+unsafe_code = "allow"

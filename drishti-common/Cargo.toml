@@ -1,0 +1,17 @@
+[package]
+name = "drishti-common"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+default = []
+std = []
+
+[lints.rust]
+unsafe_code = "forbid"
+

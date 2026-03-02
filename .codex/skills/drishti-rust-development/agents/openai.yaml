@@ -1,0 +1,4 @@
+interface:
+  display_name: "Drishti Rust Development"
+  short_description: "Implement and evolve drishti Rust modules safely."
+  default_prompt: "Use $drishti-rust-development to implement production-grade Rust changes in this repository."

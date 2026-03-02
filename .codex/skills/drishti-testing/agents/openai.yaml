@@ -1,0 +1,4 @@
+interface:
+  display_name: "Drishti Testing"
+  short_description: "Design and run reliable tests for drishti."
+  default_prompt: "Use $drishti-testing to add or refine tests and validation workflows for this repository."

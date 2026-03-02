@@ -1,0 +1,4 @@
+interface:
+  display_name: "Drishti GitHub Issue Ops"
+  short_description: "Create and sync local issue backlogs to GitHub."
+  default_prompt: "Use $drishti-github-issue-ops to prepare local issue files and sync them to GitHub via gh."
