@@ -28,6 +28,11 @@ command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
+is_readable_file() {
+  local path="$1"
+  [[ -n "$path" && -f "$path" && -r "$path" ]]
+}
+
 require_cmd() {
   if ! command_exists "$1"; then
     echo "missing required command: $1" >&2
@@ -157,19 +162,25 @@ resolve_x86_kernel_package() {
 
 resolve_x86_kernel() {
   if [[ -n "${DRISHTI_QEMU_X86_64_KERNEL:-}" ]]; then
-    echo "$DRISHTI_QEMU_X86_64_KERNEL"
+    if is_readable_file "$DRISHTI_QEMU_X86_64_KERNEL"; then
+      echo "$DRISHTI_QEMU_X86_64_KERNEL"
+      return
+    fi
+
+    echo "configured DRISHTI_QEMU_X86_64_KERNEL is missing or unreadable: $DRISHTI_QEMU_X86_64_KERNEL" >&2
+    echo ""
     return
   fi
 
   local host_kernel="/boot/vmlinuz-$(uname -r)"
-  if [[ -f "$host_kernel" ]]; then
+  if is_readable_file "$host_kernel"; then
     echo "$host_kernel"
     return
   fi
 
   local fallback
-  fallback="$(ls -1 /boot/vmlinuz* 2>/dev/null | head -n 1 || true)"
-  if [[ -n "$fallback" ]]; then
+  fallback="$(find /boot -maxdepth 1 -type f -name 'vmlinuz*' -readable 2>/dev/null | sort | head -n 1 || true)"
+  if is_readable_file "$fallback"; then
     echo "$fallback"
     return
   fi
