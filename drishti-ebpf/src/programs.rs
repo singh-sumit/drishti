@@ -6,7 +6,6 @@ use aya_bpf::{
     maps::{HashMap, RingBuf},
     programs::TracePointContext,
 };
-use core::mem;
 use drishti_common::{
     COMM_LEN,
     events::{
@@ -24,7 +23,7 @@ static LAST_RUN_TS: HashMap<u32, u64> = HashMap::with_max_entries(16384, 0);
 #[map(name = "WAKE_TS")]
 static WAKE_TS: HashMap<u32, u64> = HashMap::with_max_entries(16384, 0);
 
-#[tracepoint(name = "sched_switch")]
+#[tracepoint(name = "sched_switch", category = "sched")]
 pub fn sched_switch(ctx: TracePointContext) -> u32 {
     match try_sched_switch(ctx) {
         Ok(v) => v,
@@ -37,14 +36,12 @@ fn try_sched_switch(_ctx: TracePointContext) -> Result<u32, i64> {
     let pid = current_pid();
     let tgid = current_tgid();
 
-    let run_delta = LAST_RUN_TS
-        .get(&pid)
-        .map_or(0, |last| now.saturating_sub(*last));
+    let run_delta = unsafe { LAST_RUN_TS.get(&pid) }.map_or(0, |last| now.saturating_sub(*last));
     let _ = LAST_RUN_TS.insert(&pid, &now, 0);
 
     emit_runtime(pid, tgid, run_delta)?;
 
-    if let Some(wake_ts) = WAKE_TS.get(&pid) {
+    if let Some(wake_ts) = unsafe { WAKE_TS.get(&pid) } {
         let wait_delta = now.saturating_sub(*wake_ts);
         emit_wait(pid, tgid, wait_delta)?;
         let _ = WAKE_TS.remove(&pid);
@@ -53,7 +50,7 @@ fn try_sched_switch(_ctx: TracePointContext) -> Result<u32, i64> {
     Ok(0)
 }
 
-#[tracepoint(name = "sched_wakeup")]
+#[tracepoint(name = "sched_wakeup", category = "sched")]
 pub fn sched_wakeup(_ctx: TracePointContext) -> u32 {
     let now = unsafe { bpf_ktime_get_ns() };
     let pid = current_pid();
@@ -61,22 +58,22 @@ pub fn sched_wakeup(_ctx: TracePointContext) -> u32 {
     0
 }
 
-#[tracepoint(name = "sched_process_fork")]
+#[tracepoint(name = "sched_process_fork", category = "sched")]
 pub fn sched_process_fork(_ctx: TracePointContext) -> u32 {
     emit_proc(ProcLifecycleKind::Fork, 0)
 }
 
-#[tracepoint(name = "sched_process_exec")]
+#[tracepoint(name = "sched_process_exec", category = "sched")]
 pub fn sched_process_exec(_ctx: TracePointContext) -> u32 {
     emit_proc(ProcLifecycleKind::Exec, 0)
 }
 
-#[tracepoint(name = "sched_process_exit")]
+#[tracepoint(name = "sched_process_exit", category = "sched")]
 pub fn sched_process_exit(_ctx: TracePointContext) -> u32 {
     emit_proc(ProcLifecycleKind::Exit, 0)
 }
 
-#[tracepoint(name = "oom_kill_process")]
+#[tracepoint(name = "oom_kill_process", category = "oom")]
 pub fn oom_kill_process(_ctx: TracePointContext) -> u32 {
     let event = OomKillEvent {
         kind: EventKind::OomKill as u8,
@@ -137,13 +134,10 @@ fn emit_wait(pid: u32, tgid: u32, wait_time_ns: u64) -> Result<(), i64> {
     }
 }
 
-fn submit_event<T>(value: &T) -> u32 {
-    let size = mem::size_of::<T>() as u32;
-    match EVENTS.reserve(size, 0) {
+fn submit_event<T: Copy + 'static>(value: &T) -> u32 {
+    match EVENTS.reserve::<T>(0) {
         Some(mut entry) => {
-            entry.copy_from_slice(unsafe {
-                core::slice::from_raw_parts((value as *const T).cast::<u8>(), size as usize)
-            });
+            entry.write(*value);
             entry.submit(0);
             0
         }
@@ -153,19 +147,17 @@ fn submit_event<T>(value: &T) -> u32 {
 
 #[inline(always)]
 fn current_pid() -> u32 {
-    (unsafe { bpf_get_current_pid_tgid() } & 0xffff_ffff) as u32
+    (bpf_get_current_pid_tgid() & 0xffff_ffff) as u32
 }
 
 #[inline(always)]
 fn current_tgid() -> u32 {
-    (unsafe { bpf_get_current_pid_tgid() } >> 32) as u32
+    (bpf_get_current_pid_tgid() >> 32) as u32
 }
 
 #[inline(always)]
 fn current_comm() -> [u8; COMM_LEN] {
-    let mut comm = [0u8; COMM_LEN];
-    let _ = unsafe { bpf_get_current_comm(comm.as_mut_ptr().cast(), COMM_LEN as u32) };
-    comm
+    bpf_get_current_comm().unwrap_or([0u8; COMM_LEN])
 }
 
 #[panic_handler]
