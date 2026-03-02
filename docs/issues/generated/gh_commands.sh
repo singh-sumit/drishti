@@ -58,6 +58,11 @@ gh issue edit --repo singh-sumit/drishti 23 --title 'Disk: daemon aggregation an
 gh issue edit --repo singh-sumit/drishti 24 --title 'Disk: tests and privileged smoke coverage' --body-file 'docs/issues/generated/DRISHTI-113.md' --milestone 'v0.2 Drishti Network+Disk'
 gh issue edit --repo singh-sumit/drishti 25 --title 'Disk: docs and dashboard updates' --body-file 'docs/issues/generated/DRISHTI-114.md' --milestone 'v0.2 Drishti Network+Disk'
 gh issue edit --repo singh-sumit/drishti 12 --title 'Deferred: Syscall tracing collector' --body-file 'docs/issues/generated/DRISHTI-092.md' --milestone 'v0.3 Drishti Syscalls'
+gh issue edit --repo singh-sumit/drishti 27 --title 'Syscall: ABI types and config surface' --body-file 'docs/issues/generated/DRISHTI-120.md' --milestone 'v0.3 Drishti Syscalls'
+gh issue edit --repo singh-sumit/drishti 28 --title 'Syscall: eBPF enter/exit probes and maps' --body-file 'docs/issues/generated/DRISHTI-121.md' --milestone 'v0.3 Drishti Syscalls'
+gh issue edit --repo singh-sumit/drishti 29 --title 'Syscall: daemon collector and metrics aggregation' --body-file 'docs/issues/generated/DRISHTI-122.md' --milestone 'v0.3 Drishti Syscalls'
+gh issue edit --repo singh-sumit/drishti 30 --title 'Syscall: tests and privileged smoke coverage' --body-file 'docs/issues/generated/DRISHTI-123.md' --milestone 'v0.3 Drishti Syscalls'
+gh issue edit --repo singh-sumit/drishti 31 --title 'Syscall: dashboards and docs updates' --body-file 'docs/issues/generated/DRISHTI-124.md' --milestone 'v0.3 Drishti Syscalls'
 gh issue edit --repo singh-sumit/drishti 13 --title 'Deferred: Cross-arch QEMU CI execution' --body-file 'docs/issues/generated/DRISHTI-093.md' --milestone 'v0.4 Drishti QEMU CI'
 gh issue edit --repo singh-sumit/drishti 14 --title 'Deferred: musl static optimization and size budgets' --body-file 'docs/issues/generated/DRISHTI-094.md' --milestone 'v0.5 Drishti Packaging'
 # parent tasklists and dependency links are applied during --apply

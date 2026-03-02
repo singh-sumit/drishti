@@ -59,7 +59,11 @@ pub async fn run(options: RunOptions) -> Result<()> {
 
     let _pid_file_guard = create_pid_file(&config.daemon.pid_file)?;
 
-    let metrics = Arc::new(AppMetrics::new(config.export.max_series));
+    let metrics = Arc::new(AppMetrics::new(
+        config.export.max_series,
+        config.collectors.syscall.top_n,
+        &config.collectors.syscall.latency_buckets_usec,
+    ));
     let (event_tx, event_rx) = mpsc::channel::<ObservabilityEvent>(8192);
     let (shutdown_tx, shutdown_rx) = watch::channel(false);
 

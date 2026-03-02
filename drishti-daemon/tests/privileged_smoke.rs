@@ -15,7 +15,8 @@ fn privileged_loader_smoke() {
 
         let runtime = Runtime::new().expect("tokio runtime should initialize");
         runtime.block_on(async {
-            let config = Config::default();
+            let mut config = Config::default();
+            config.collectors.syscall.enabled = true;
             let (tx, _rx) = mpsc::channel(64);
             let (_shutdown_tx, shutdown_rx) = watch::channel(false);
 

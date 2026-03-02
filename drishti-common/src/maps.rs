@@ -31,3 +31,16 @@ pub struct WakeTimestamp {
 pub struct LastSeenRun {
     pub ts_ns: u64,
 }
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash)]
+pub struct SyscallKey {
+    pub pid: u32,
+    pub syscall_nr: i64,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+pub struct SyscallStartTs {
+    pub ts_ns: u64,
+}

@@ -26,6 +26,11 @@ enabled = true
 devices = []
 latency_buckets_usec = [10, 50, 100, 500, 1000, 5000, 10000]
 
+[collectors.syscall]
+enabled = false
+top_n = 20
+latency_buckets_usec = [1, 10, 50, 100, 500, 1000, 5000]
+
 [filters]
 exclude_pids = [1, 2]
 exclude_comms = ["kworker"]

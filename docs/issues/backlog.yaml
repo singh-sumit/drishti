@@ -234,9 +234,64 @@
       "type": "task",
       "labels": ["deferred", "syscall", "v0.3"],
       "milestone": "v0.3 Drishti Syscalls",
-      "status": "planned",
+      "status": "in-progress",
       "depends_on": ["DRISHTI-001"],
       "body": "Implement raw syscall enter/exit tracing with latency histograms and error counters."
+    },
+    {
+      "id": "DRISHTI-120",
+      "title": "Syscall: ABI types and config surface",
+      "type": "task",
+      "labels": ["syscall", "rust", "v0.3"],
+      "milestone": "v0.3 Drishti Syscalls",
+      "parent_id": "DRISHTI-092",
+      "status": "in-progress",
+      "depends_on": ["DRISHTI-092"],
+      "body": "Add syscall event structs in drishti-common plus collector config defaults and environment overrides."
+    },
+    {
+      "id": "DRISHTI-121",
+      "title": "Syscall: eBPF enter/exit probes and maps",
+      "type": "task",
+      "labels": ["syscall", "ebpf", "v0.3"],
+      "milestone": "v0.3 Drishti Syscalls",
+      "parent_id": "DRISHTI-092",
+      "status": "in-progress",
+      "depends_on": ["DRISHTI-120"],
+      "body": "Implement raw_syscalls sys_enter/sys_exit tracing with bounded start timestamp maps and ring buffer events."
+    },
+    {
+      "id": "DRISHTI-122",
+      "title": "Syscall: daemon collector and metrics aggregation",
+      "type": "task",
+      "labels": ["syscall", "daemon", "metrics", "v0.3"],
+      "milestone": "v0.3 Drishti Syscalls",
+      "parent_id": "DRISHTI-092",
+      "status": "in-progress",
+      "depends_on": ["DRISHTI-121"],
+      "body": "Consume syscall events, export count/error/latency metrics, and enforce top-N + max_series cardinality controls."
+    },
+    {
+      "id": "DRISHTI-123",
+      "title": "Syscall: tests and privileged smoke coverage",
+      "type": "task",
+      "labels": ["syscall", "testing", "v0.3"],
+      "milestone": "v0.3 Drishti Syscalls",
+      "parent_id": "DRISHTI-092",
+      "status": "in-progress",
+      "depends_on": ["DRISHTI-122"],
+      "body": "Add unit/integration and gated privileged smoke coverage for syscall collection and exporter paths."
+    },
+    {
+      "id": "DRISHTI-124",
+      "title": "Syscall: dashboards and docs updates",
+      "type": "task",
+      "labels": ["syscall", "grafana", "docs", "v0.3"],
+      "milestone": "v0.3 Drishti Syscalls",
+      "parent_id": "DRISHTI-092",
+      "status": "in-progress",
+      "depends_on": ["DRISHTI-123"],
+      "body": "Update Grafana dashboards and setup documentation for syscall metrics and configuration controls."
     },
     {
       "id": "DRISHTI-093",

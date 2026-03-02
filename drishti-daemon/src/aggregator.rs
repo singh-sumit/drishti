@@ -1,5 +1,5 @@
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     sync::{Mutex, MutexGuard},
 };
 
@@ -8,7 +8,7 @@ use prometheus_client::{
     encoding::{EncodeLabelSet, text::encode},
     metrics::{
         counter::Counter,
-        family::Family,
+        family::{Family, MetricConstructor},
         gauge::Gauge,
         histogram::{Histogram, exponential_buckets},
     },
@@ -49,6 +49,24 @@ pub struct DiskDeviceLabels {
     pub device: String,
 }
 
+#[derive(Clone, Debug, Hash, PartialEq, Eq, EncodeLabelSet)]
+pub struct SyscallLabels {
+    pub syscall: String,
+    pub pid: u32,
+    pub comm: String,
+}
+
+#[derive(Clone)]
+struct SyscallHistogramConstructor {
+    buckets: Vec<f64>,
+}
+
+impl MetricConstructor<Histogram> for SyscallHistogramConstructor {
+    fn new_metric(&self) -> Histogram {
+        Histogram::new(self.buckets.clone())
+    }
+}
+
 pub struct AppMetrics {
     registry: Mutex<Registry>,
     series_limiter: SeriesLimiter,
@@ -74,6 +92,11 @@ pub struct AppMetrics {
     disk_iops_total: Family<DiskDeviceLabels, Counter>,
     disk_io_latency_usec: Family<DiskDeviceLabels, Histogram>,
     disk_queue_depth: Family<DiskDeviceLabels, Gauge>,
+    syscall_count_total: Family<SyscallLabels, Counter>,
+    syscall_error_total: Family<SyscallLabels, Counter>,
+    syscall_latency_usec: Family<SyscallLabels, Histogram, SyscallHistogramConstructor>,
+    syscall_top_n: usize,
+    syscall_popularity: Mutex<HashMap<String, u64>>,
     scrape_duration_ms: Histogram,
     series_dropped_total: Counter,
     loader_failures_total: Counter,
@@ -81,7 +104,11 @@ pub struct AppMetrics {
 
 impl AppMetrics {
     #[must_use]
-    pub fn new(max_series: usize) -> Self {
+    pub fn new(
+        max_series: usize,
+        syscall_top_n: usize,
+        syscall_latency_buckets_usec: &[u64],
+    ) -> Self {
         let mut registry = Registry::default();
 
         let cpu_run_time_ns_total = Family::default();
@@ -108,6 +135,11 @@ impl AppMetrics {
         let disk_io_latency_usec: Family<DiskDeviceLabels, Histogram> =
             Family::new_with_constructor(disk_latency_histogram as fn() -> Histogram);
         let disk_queue_depth = Family::default();
+        let syscall_count_total = Family::default();
+        let syscall_error_total = Family::default();
+        let syscall_latency_usec = Family::new_with_constructor(SyscallHistogramConstructor {
+            buckets: syscall_histogram_buckets(syscall_latency_buckets_usec),
+        });
         let scrape_duration_ms = Histogram::new(exponential_buckets(1.0, 2.0, 12));
         let series_dropped_total = Counter::default();
         let loader_failures_total = Counter::default();
@@ -223,6 +255,21 @@ impl AppMetrics {
             disk_queue_depth.clone(),
         );
         registry.register(
+            "drishti_syscall_count",
+            "Syscall invocation count grouped by syscall, pid, and comm",
+            syscall_count_total.clone(),
+        );
+        registry.register(
+            "drishti_syscall_error",
+            "Syscall error count (ret < 0) grouped by syscall, pid, and comm",
+            syscall_error_total.clone(),
+        );
+        registry.register(
+            "drishti_syscall_latency_usec",
+            "Syscall latency observations in microseconds",
+            syscall_latency_usec.clone(),
+        );
+        registry.register(
             "drishti_collect_scrape_duration_ms",
             "Time spent collecting memory snapshots",
             scrape_duration_ms.clone(),
@@ -263,6 +310,11 @@ impl AppMetrics {
             disk_iops_total,
             disk_io_latency_usec,
             disk_queue_depth,
+            syscall_count_total,
+            syscall_error_total,
+            syscall_latency_usec,
+            syscall_top_n,
+            syscall_popularity: Mutex::new(HashMap::new()),
             scrape_duration_ms,
             series_dropped_total,
             loader_failures_total,
@@ -440,6 +492,33 @@ impl AppMetrics {
         }
     }
 
+    pub fn record_syscall(
+        &self,
+        syscall_nr: i64,
+        ret: i64,
+        latency_usec: u64,
+        pid: u32,
+        comm: &str,
+    ) {
+        let syscall_name = resolve_syscall_name(syscall_nr);
+        let syscall_label = self.project_syscall_label(&syscall_name);
+        let labels = SyscallLabels {
+            syscall: syscall_label,
+            pid,
+            comm: normalize_comm(comm),
+        };
+
+        if self.allow_series("drishti_syscall_count", &labels) {
+            self.syscall_count_total.get_or_create(&labels).inc();
+            if ret < 0 {
+                self.syscall_error_total.get_or_create(&labels).inc();
+            }
+            self.syscall_latency_usec
+                .get_or_create(&labels)
+                .observe(latency_usec as f64);
+        }
+    }
+
     pub fn update_process_memory(
         &self,
         pid: u32,
@@ -503,6 +582,39 @@ impl AppMetrics {
         }
     }
 
+    fn project_syscall_label(&self, syscall_name: &str) -> String {
+        if self.syscall_top_n == 0 {
+            return "other".to_string();
+        }
+
+        let mut popularity = self
+            .syscall_popularity
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner());
+        let entry = popularity.entry(syscall_name.to_string()).or_insert(0);
+        *entry = entry.saturating_add(1);
+
+        if popularity.len() <= self.syscall_top_n {
+            return syscall_name.to_string();
+        }
+
+        let mut ranked: Vec<(&String, u64)> = popularity
+            .iter()
+            .map(|(name, count)| (name, *count))
+            .collect();
+        ranked.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(b.0)));
+
+        if ranked
+            .iter()
+            .take(self.syscall_top_n)
+            .any(|(name, _)| name.as_str() == syscall_name)
+        {
+            syscall_name.to_string()
+        } else {
+            "other".to_string()
+        }
+    }
+
     fn lock_registry(&self) -> MutexGuard<'_, Registry> {
         self.registry
             .lock()
@@ -545,6 +657,23 @@ fn network_rtt_histogram() -> Histogram {
 
 fn disk_latency_histogram() -> Histogram {
     Histogram::new(exponential_buckets(10.0, 2.0, 10))
+}
+
+fn syscall_histogram_buckets(raw_buckets: &[u64]) -> Vec<f64> {
+    let mut buckets: Vec<f64> = raw_buckets
+        .iter()
+        .copied()
+        .filter(|value| *value > 0)
+        .map(|value| value as f64)
+        .collect();
+
+    if buckets.is_empty() {
+        buckets = vec![1.0, 10.0, 50.0, 100.0, 500.0, 1000.0, 5000.0];
+    }
+
+    buckets.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    buckets.dedup_by(|a, b| (*a - *b).abs() < f64::EPSILON);
+    buckets
 }
 
 fn normalize_comm(comm: &str) -> String {
@@ -600,6 +729,60 @@ fn normalize_op(operation: &str) -> &'static str {
     }
 }
 
+fn resolve_syscall_name(syscall_nr: i64) -> String {
+    let name = match syscall_nr {
+        0 => "read",
+        1 => "write",
+        2 => "open",
+        3 => "close",
+        9 => "mmap",
+        10 => "mprotect",
+        11 => "munmap",
+        12 => "brk",
+        16 => "ioctl",
+        21 => "access",
+        32 => "dup",
+        39 => "getpid",
+        41 => "socket",
+        42 => "connect",
+        44 => "sendto",
+        45 => "recvfrom",
+        49 => "bind",
+        50 => "listen",
+        51 => "getsockname",
+        52 => "getpeername",
+        53 => "socketpair",
+        54 => "setsockopt",
+        55 => "getsockopt",
+        56 => "clone",
+        57 => "fork",
+        58 => "vfork",
+        59 => "execve",
+        60 => "exit",
+        61 => "wait4",
+        62 => "kill",
+        63 => "uname",
+        72 => "fcntl",
+        78 => "getdents",
+        79 => "getcwd",
+        80 => "chdir",
+        87 => "unlink",
+        89 => "readlink",
+        97 => "getrlimit",
+        158 => "arch_prctl",
+        202 => "futex",
+        217 => "getdents64",
+        231 => "exit_group",
+        257 => "openat",
+        262 => "newfstatat",
+        318 => "getrandom",
+        332 => "statx",
+        _ => return format!("nr_{syscall_nr}"),
+    };
+
+    name.to_string()
+}
+
 fn cast_i64(value: u64) -> i64 {
     i64::try_from(value).unwrap_or(i64::MAX)
 }
@@ -616,7 +799,7 @@ mod tests {
 
     #[test]
     fn series_limit_drops_extra_series() {
-        let metrics = AppMetrics::new(1);
+        let metrics = AppMetrics::new(1, 20, &[1, 10, 50]);
         metrics.record_cpu_runtime(1, "proc-a", 10);
         metrics.record_cpu_runtime(2, "proc-b", 20);
 
@@ -631,7 +814,7 @@ mod tests {
 
     #[test]
     fn record_network_and_disk_metrics() {
-        let metrics = AppMetrics::new(10_000);
+        let metrics = AppMetrics::new(10_000, 20, &[1, 10, 50]);
         metrics.record_net_tx(42, "proc", 2, "eth0", 1000, 10);
         metrics.record_net_rx(42, "proc", 2, "eth0", 2000, 20);
         metrics.record_tcp_rtt(42, "proc", 2, "eth0", 55);
@@ -649,5 +832,27 @@ mod tests {
         assert!(rendered.contains("drishti_disk_iops_total{"));
         assert!(rendered.contains("drishti_disk_io_latency_usec_sum{"));
         assert!(rendered.contains("drishti_disk_queue_depth{"));
+    }
+
+    #[test]
+    fn record_syscall_metrics_and_top_n_collapse() {
+        let metrics = AppMetrics::new(10_000, 1, &[1, 10, 50, 100]);
+
+        for _ in 0..4 {
+            metrics.record_syscall(0, 0, 10, 7, "proc-a");
+        }
+        metrics.record_syscall(9999, -1, 77, 7, "proc-a");
+
+        let rendered = metrics.render().expect("render should succeed");
+        assert!(rendered.contains("drishti_syscall_count_total{syscall=\"read\""));
+        assert!(rendered.contains("drishti_syscall_count_total{syscall=\"other\""));
+        assert!(rendered.contains("drishti_syscall_error_total{syscall=\"other\""));
+        assert!(rendered.contains("drishti_syscall_latency_usec_sum{syscall=\"other\""));
+    }
+
+    #[test]
+    fn syscall_name_fallback_is_deterministic() {
+        assert_eq!(resolve_syscall_name(9999), "nr_9999");
+        assert_eq!(resolve_syscall_name(0), "read");
     }
 }

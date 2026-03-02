@@ -11,6 +11,7 @@ pub enum EventKind {
     TcpRtt = 6,
     TcpRetransmit = 7,
     DiskIo = 8,
+    Syscall = 9,
 }
 
 #[repr(u8)]
@@ -136,6 +137,19 @@ pub struct DiskIoEvent {
     pub bytes: u64,
     pub latency_usec: u64,
     pub queue_depth: u32,
+    pub comm: [u8; COMM_LEN],
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct SyscallEvent {
+    pub kind: u8,
+    pub _pad0: [u8; 3],
+    pub pid: u32,
+    pub tgid: u32,
+    pub syscall_nr: i64,
+    pub ret: i64,
+    pub latency_usec: u64,
     pub comm: [u8; COMM_LEN],
 }
 
