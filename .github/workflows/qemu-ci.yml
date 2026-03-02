@@ -63,10 +63,36 @@ jobs:
           cargo install cross --locked
       - name: Fetch arm64 kernel package
         run: |
-          sudo dpkg --add-architecture arm64
-          sudo apt-get update
-          apt-get download linux-image-virtual:arm64
-          echo "DRISHTI_QEMU_AARCH64_KERNEL_DEB=$(pwd)/$(ls -1 linux-image-virtual_*_arm64.deb | head -n 1)" >> "$GITHUB_ENV"
+          set -euo pipefail
+
+          APT_ROOT="$RUNNER_TEMP/apt-arm64"
+          mkdir -p "$APT_ROOT/etc/apt" "$APT_ROOT/state/lists/partial" "$APT_ROOT/cache/archives/partial"
+
+          cat > "$APT_ROOT/etc/apt/sources.list" <<'EOF'
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main restricted universe multiverse
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main restricted universe multiverse
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-security main restricted universe multiverse
+          EOF
+
+          APT_OPTS=(
+            -o "Dir::Etc::sourcelist=$APT_ROOT/etc/apt/sources.list"
+            -o "Dir::Etc::sourceparts=-"
+            -o "APT::Get::List-Cleanup=0"
+            -o "Dir::State=$APT_ROOT/state"
+            -o "Dir::State::lists=$APT_ROOT/state/lists"
+            -o "Dir::Cache=$APT_ROOT/cache"
+            -o "Dir::Cache::archives=$APT_ROOT/cache/archives"
+            -o "Acquire::Retries=3"
+          )
+
+          apt-get "${APT_OPTS[@]}" update
+          (
+            cd "$APT_ROOT"
+            apt-get "${APT_OPTS[@]}" -o "APT::Architecture=arm64" download linux-image-virtual:arm64
+          )
+
+          KERNEL_DEB="$(ls -1 "$APT_ROOT"/linux-image-virtual_*_arm64.deb | head -n 1)"
+          echo "DRISHTI_QEMU_AARCH64_KERNEL_DEB=$KERNEL_DEB" >> "$GITHUB_ENV"
       - name: Run aarch64 QEMU CI lane
         env:
           DRISHTI_QEMU_BUILD_TOOL: cross
