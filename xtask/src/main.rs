@@ -243,12 +243,18 @@ fn qemu_ci(arch: QemuArch, kvm: KvmMode, timeout_secs: u64, skip_build: bool) ->
 fn build_qemu_binaries(arch: QemuArch) -> Result<()> {
     build_ebpf("nightly", "bpfel-unknown-none")?;
     let ebpf_object = find_ebpf_object()?;
+    let ebpf_fingerprint = ebpf_object_fingerprint(&ebpf_object)?;
 
     let target = arch.default_target();
     let build_tool = select_build_tool(arch);
     if build_tool == "cargo" {
         ensure_rust_target_installed(target)?;
     }
+    let embedded_bpf_path = if build_tool == "cross" {
+        to_cross_container_path(&ebpf_object)?
+    } else {
+        ebpf_object
+    };
 
     let mut command = Command::new(&build_tool);
     command.args([
@@ -265,7 +271,8 @@ fn build_qemu_binaries(arch: QemuArch) -> Result<()> {
         "--bin",
         "qemu_smoke",
     ]);
-    command.env("DRISHTI_EMBEDDED_BPF_PATH", &ebpf_object);
+    command.env("DRISHTI_EMBEDDED_BPF_PATH", &embedded_bpf_path);
+    command.env("DRISHTI_EMBEDDED_BPF_META", &ebpf_fingerprint);
 
     let status = command
         .status()
@@ -276,6 +283,19 @@ fn build_qemu_binaries(arch: QemuArch) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn to_cross_container_path(host_path: &Path) -> Result<PathBuf> {
+    let root = workspace_root();
+    let relative = host_path.strip_prefix(&root).with_context(|| {
+        format!(
+            "failed to map {} into cross container path; expected it under workspace {}",
+            host_path.display(),
+            root.display()
+        )
+    })?;
+
+    Ok(Path::new("/project").join(relative))
 }
 
 fn ensure_rust_target_installed(target: &str) -> Result<()> {
@@ -319,7 +339,7 @@ fn find_ebpf_object() -> Result<PathBuf> {
     ];
 
     for candidate in candidates {
-        if candidate.exists() {
+        if candidate.exists() && is_ebpf_elf(&candidate)? {
             return Ok(candidate);
         }
     }
@@ -338,7 +358,10 @@ fn find_ebpf_object() -> Result<PathBuf> {
                 .file_name()
                 .map(|value| value.to_string_lossy())
                 .unwrap_or_default();
-            if file_name.starts_with("drishti_ebpf-") && !file_name.ends_with(".d") {
+            if file_name.starts_with("drishti_ebpf-")
+                && !file_name.ends_with(".d")
+                && is_ebpf_elf(&path)?
+            {
                 return Ok(path);
             }
         }
@@ -347,6 +370,45 @@ fn find_ebpf_object() -> Result<PathBuf> {
     bail!(
         "unable to find compiled eBPF object under target/bpfel-unknown-none/release; run `cargo run -p xtask -- build-ebpf` and ensure drishti-ebpf binary target builds"
     )
+}
+
+fn ebpf_object_fingerprint(path: &Path) -> Result<String> {
+    let metadata = fs::metadata(path)
+        .with_context(|| format!("failed to stat eBPF object at {}", path.display()))?;
+    let modified_nanos = metadata
+        .modified()
+        .ok()
+        .and_then(|value| value.duration_since(UNIX_EPOCH).ok())
+        .map_or(0_u128, |value| value.as_nanos());
+    Ok(format!("{}:{modified_nanos}", metadata.len()))
+}
+
+fn is_ebpf_elf(path: &Path) -> Result<bool> {
+    const ELF_MAGIC: &[u8; 4] = b"\x7fELF";
+    const ELF_CLASS_64: u8 = 2;
+    const ELFDATA2LSB: u8 = 1;
+    const ELFDATA2MSB: u8 = 2;
+    const EM_BPF: u16 = 247;
+
+    let bytes = fs::read(path)
+        .with_context(|| format!("failed to read potential eBPF object {}", path.display()))?;
+    if bytes.len() < 20 {
+        return Ok(false);
+    }
+    if &bytes[0..4] != ELF_MAGIC {
+        return Ok(false);
+    }
+    if bytes[4] != ELF_CLASS_64 {
+        return Ok(false);
+    }
+
+    let machine = match bytes[5] {
+        ELFDATA2LSB => u16::from_le_bytes([bytes[18], bytes[19]]),
+        ELFDATA2MSB => u16::from_be_bytes([bytes[18], bytes[19]]),
+        _ => return Ok(false),
+    };
+
+    Ok(machine == EM_BPF)
 }
 
 fn daemon_binary_path(arch: QemuArch) -> PathBuf {

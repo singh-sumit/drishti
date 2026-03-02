@@ -30,7 +30,16 @@ command_exists() {
 
 is_readable_file() {
   local path="$1"
-  [[ -n "$path" && -f "$path" && -r "$path" ]]
+  [[ -n "$path" && -f "$path" ]] || return 1
+
+  local resolved="$path"
+  if [[ -L "$path" ]]; then
+    resolved="$(readlink -f "$path" 2>/dev/null || true)"
+    [[ -n "$resolved" && -f "$resolved" ]] || return 1
+  fi
+
+  [[ -r "$resolved" ]] || return 1
+  head -c 1 "$resolved" >/dev/null 2>&1
 }
 
 require_cmd() {
@@ -321,7 +330,7 @@ scrape_interval_ms = 1000
 max_series = 10000
 CFG
 
-cp "$KERNEL_SRC" "$KERNEL_OUT"
+cp -L "$KERNEL_SRC" "$KERNEL_OUT"
 
 (
   cd "$INITRAMFS_DIR"
