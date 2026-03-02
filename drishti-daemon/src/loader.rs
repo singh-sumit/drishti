@@ -5,8 +5,8 @@ use drishti_common::{
     COMM_LEN, IFACE_LEN,
     events::{
         CpuRuntimeEvent, CpuWaitEvent, DiskIoEvent, DiskOp, EventKind, NetDirection,
-        NetTrafficEvent, OomKillEvent, ProcLifecycleEvent, ProcLifecycleKind, TcpRetransmitEvent,
-        TcpRttEvent,
+        NetTrafficEvent, OomKillEvent, ProcLifecycleEvent, ProcLifecycleKind, SyscallEvent,
+        TcpRetransmitEvent, TcpRttEvent,
     },
 };
 use tokio::{
@@ -35,6 +35,7 @@ pub async fn start(
             config.collectors.network.tcp_rtt,
             config.collectors.network.tcp_retransmits,
             config.collectors.disk.enabled,
+            config.collectors.syscall.enabled,
         ))]);
     }
 
@@ -206,6 +207,34 @@ pub async fn emit_synthetic_once(
             .await?;
     }
 
+    if config.collectors.syscall.enabled {
+        event_tx
+            .send(ObservabilityEvent::Syscall(SyscallEvent {
+                kind: EventKind::Syscall as u8,
+                _pad0: [0; 3],
+                pid: 4242,
+                tgid: 4242,
+                syscall_nr: 0,
+                ret: 64,
+                latency_usec: 22,
+                comm: fixed_from_str::<COMM_LEN>("synthetic-syscall"),
+            }))
+            .await?;
+
+        event_tx
+            .send(ObservabilityEvent::Syscall(SyscallEvent {
+                kind: EventKind::Syscall as u8,
+                _pad0: [0; 3],
+                pid: 4242,
+                tgid: 4242,
+                syscall_nr: 257,
+                ret: -2,
+                latency_usec: 31,
+                comm: fixed_from_str::<COMM_LEN>("synthetic-syscall"),
+            }))
+            .await?;
+    }
+
     Ok(())
 }
 
@@ -220,6 +249,7 @@ async fn run_synthetic_stream(
     network_rtt_enabled: bool,
     network_retransmits_enabled: bool,
     disk_enabled: bool,
+    syscall_enabled: bool,
 ) -> Result<()> {
     let mut interval = tokio::time::interval(Duration::from_millis(250));
     let mut tick: u64 = 0;
@@ -368,6 +398,19 @@ async fn run_synthetic_stream(
                         }))
                         .await?;
                 }
+
+                if syscall_enabled {
+                    event_tx.send(ObservabilityEvent::Syscall(SyscallEvent {
+                        kind: EventKind::Syscall as u8,
+                        _pad0: [0; 3],
+                        pid: 1200,
+                        tgid: 1200,
+                        syscall_nr: if tick % 2 == 0 { 0 } else { 257 },
+                        ret: if tick % 3 == 0 { -1 } else { 0 },
+                        latency_usec: 10 + tick,
+                        comm: fixed_from_str::<COMM_LEN>("synthetic-syscall"),
+                    })).await?;
+                }
             }
         }
     }
@@ -391,7 +434,7 @@ mod ebpf_runtime {
     use aya::{Ebpf, maps::ring_buf::RingBuf, programs::TracePoint};
     use drishti_common::events::{
         CpuRuntimeEvent, CpuWaitEvent, DiskIoEvent, EventKind, NetTrafficEvent, OomKillEvent,
-        ProcLifecycleEvent, TcpRetransmitEvent, TcpRttEvent,
+        ProcLifecycleEvent, SyscallEvent, TcpRetransmitEvent, TcpRttEvent,
     };
     use tokio::{
         sync::{mpsc, watch},
@@ -462,6 +505,11 @@ mod ebpf_runtime {
         if config.collectors.disk.enabled {
             attach_optional_tracepoint(&mut bpf, "block_rq_issue", "block", "block_rq_issue");
             attach_optional_tracepoint(&mut bpf, "block_rq_complete", "block", "block_rq_complete");
+        }
+
+        if config.collectors.syscall.enabled {
+            attach_optional_tracepoint(&mut bpf, "sys_enter", "raw_syscalls", "sys_enter");
+            attach_optional_tracepoint(&mut bpf, "sys_exit", "raw_syscalls", "sys_exit");
         }
 
         let mut ring = RingBuf::try_from(
@@ -571,6 +619,9 @@ mod ebpf_runtime {
             }
             x if x == EventKind::DiskIo as u8 => {
                 read_event::<DiskIoEvent>(payload).map(ObservabilityEvent::DiskIo)
+            }
+            x if x == EventKind::Syscall as u8 => {
+                read_event::<SyscallEvent>(payload).map(ObservabilityEvent::Syscall)
             }
             _ => {
                 warn!(kind, "unknown event kind from ring buffer");

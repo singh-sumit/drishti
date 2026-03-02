@@ -10,6 +10,11 @@ use std::{
 
 use tempfile::tempdir;
 
+struct HttpResponse {
+    status_code: u16,
+    body: String,
+}
+
 fn reserve_port() -> Option<u16> {
     match TcpListener::bind("127.0.0.1:0") {
         Ok(listener) => {
@@ -28,8 +33,8 @@ fn reserve_port() -> Option<u16> {
 fn wait_for_health(port: u16) {
     let deadline = Instant::now() + Duration::from_secs(15);
     while Instant::now() < deadline {
-        if let Ok(body) = http_get(port, "/healthz") {
-            if body.contains("ok") {
+        if let Ok(response) = http_get(port, "/healthz") {
+            if response.status_code == 200 && response.body.contains("ok") {
                 return;
             }
         }
@@ -38,7 +43,7 @@ fn wait_for_health(port: u16) {
     panic!("daemon did not become healthy in time");
 }
 
-fn http_get(port: u16, path: &str) -> Result<String, String> {
+fn http_get(port: u16, path: &str) -> Result<HttpResponse, String> {
     let mut stream = TcpStream::connect(("127.0.0.1", port)).map_err(|err| err.to_string())?;
     let request = format!("GET {path} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n");
     stream
@@ -50,11 +55,24 @@ fn http_get(port: u16, path: &str) -> Result<String, String> {
         .read_to_string(&mut response)
         .map_err(|err| err.to_string())?;
 
-    response
-        .split("\r\n\r\n")
+    let mut sections = response.splitn(2, "\r\n\r\n");
+    let headers = sections
+        .next()
+        .ok_or_else(|| "invalid HTTP response".to_string())?;
+    let body = sections.next().unwrap_or_default().to_string();
+
+    let status_line = headers
+        .lines()
+        .next()
+        .ok_or_else(|| "missing status line".to_string())?;
+    let status_code = status_line
+        .split_whitespace()
         .nth(1)
-        .map(ToOwned::to_owned)
-        .ok_or_else(|| "invalid HTTP response".to_string())
+        .ok_or_else(|| "missing status code".to_string())?
+        .parse::<u16>()
+        .map_err(|err| err.to_string())?;
+
+    Ok(HttpResponse { status_code, body })
 }
 
 fn write_config(
@@ -64,6 +82,7 @@ fn write_config(
     process_enabled: bool,
     network_enabled: bool,
     disk_enabled: bool,
+    syscall_enabled: bool,
 ) {
     let config = format!(
         r#"
@@ -92,6 +111,11 @@ tcp_retransmits = true
 enabled = {disk_enabled}
 devices = []
 latency_buckets_usec = [10,50,100,500,1000,5000,10000]
+
+[collectors.syscall]
+enabled = {syscall_enabled}
+top_n = 20
+latency_buckets_usec = [1,10,50,100,500,1000,5000]
 
 [filters]
 exclude_pids = []
@@ -166,12 +190,18 @@ fn metrics_endpoint_exposes_core_series() {
     let Some(port) = reserve_port() else {
         return;
     };
-    write_config(&config_path, port, true, true, true, true);
+    write_config(&config_path, port, true, true, true, true, true);
 
     let mut daemon = spawn_daemon(&config_path);
     wait_for_health(port);
 
+    let health = http_get(port, "/healthz").expect("health response should succeed");
+    assert_eq!(health.status_code, 200);
+    assert!(health.body.contains("ok"));
+
     let metrics = http_get(port, "/metrics").expect("metrics response should succeed");
+    assert_eq!(metrics.status_code, 200);
+    let metrics = metrics.body;
 
     assert!(metrics.contains("drishti_cpu_run_time_ns_total{"));
     assert!(metrics.contains("drishti_cpu_wait_time_ns_total{"));
@@ -185,23 +215,32 @@ fn metrics_endpoint_exposes_core_series() {
     assert!(metrics.contains("drishti_disk_iops_total{"));
     assert!(metrics.contains("drishti_disk_io_latency_usec_sum{"));
     assert!(metrics.contains("drishti_disk_queue_depth{"));
+    assert!(metrics.contains("drishti_syscall_count_total{"));
+    assert!(metrics.contains("drishti_syscall_error_total{"));
+    assert!(metrics.contains("drishti_syscall_latency_usec_sum{"));
 
     stop_daemon(&mut daemon);
 }
 
 #[test]
-fn disabled_collectors_do_not_emit_cpu_process_network_disk_series() {
+fn disabled_collectors_do_not_emit_cpu_process_network_disk_syscall_series() {
     let temp = tempdir().expect("temp dir should be created");
     let config_path = temp.path().join("drishti-disabled.toml");
     let Some(port) = reserve_port() else {
         return;
     };
-    write_config(&config_path, port, false, false, false, false);
+    write_config(&config_path, port, false, false, false, false, false);
 
     let mut daemon = spawn_daemon(&config_path);
     wait_for_health(port);
 
+    let health = http_get(port, "/healthz").expect("health response should succeed");
+    assert_eq!(health.status_code, 200);
+    assert!(health.body.contains("ok"));
+
     let metrics = http_get(port, "/metrics").expect("metrics response should succeed");
+    assert_eq!(metrics.status_code, 200);
+    let metrics = metrics.body;
 
     assert!(!metrics.contains("drishti_cpu_run_time_ns_total{"));
     assert!(!metrics.contains("drishti_proc_lifecycle_total{"));
@@ -209,6 +248,9 @@ fn disabled_collectors_do_not_emit_cpu_process_network_disk_series() {
     assert!(!metrics.contains("drishti_net_rx_bytes_total{"));
     assert!(!metrics.contains("drishti_disk_read_bytes_total{"));
     assert!(!metrics.contains("drishti_disk_iops_total{"));
+    assert!(!metrics.contains("drishti_syscall_count_total{"));
+    assert!(!metrics.contains("drishti_syscall_error_total{"));
+    assert!(!metrics.contains("drishti_syscall_latency_usec_sum{"));
     assert!(metrics.contains("drishti_mem_rss_bytes{"));
 
     stop_daemon(&mut daemon);

@@ -2,7 +2,7 @@
 
 Drishti is a Rust observability daemon that combines eBPF event collection with a Prometheus-compatible exporter and Grafana dashboards.
 
-v0.2 expands collector coverage to CPU, process lifecycle, memory, network, and disk telemetry with `drishti_*` Prometheus metrics.
+v0.3 expands collector coverage to CPU, process lifecycle, memory, network, disk, and syscall telemetry with `drishti_*` Prometheus metrics.
 
 ## Workspace
 - `drishti-common`: shared ABI-safe event/map types
@@ -21,6 +21,23 @@ Run a one-shot synthetic collection for quick verification:
 ```bash
 cargo run -p drishti-daemon -- --config config/drishti.toml --once
 ```
+
+## Syscall Collector
+Syscall tracing is disabled by default because it can increase event volume.
+
+Enable it in `config/drishti.toml`:
+
+```toml
+[collectors.syscall]
+enabled = true
+top_n = 20
+latency_buckets_usec = [1, 10, 50, 100, 500, 1000, 5000]
+```
+
+Prometheus series:
+- `drishti_syscall_count_total`
+- `drishti_syscall_error_total`
+- `drishti_syscall_latency_usec`
 
 ## Common Commands
 ```bash

@@ -21,3 +21,10 @@ just test
 cargo run -p xtask -- build-ebpf
 scripts/sync_github_issues.sh --repo <owner/repo> --input docs/issues/backlog.yaml --dry-run
 ```
+
+## Syscall Collector Notes
+- `collectors.syscall.enabled` defaults to `false` to avoid unnecessary overhead on high-syscall workloads.
+- Enable syscall metrics with:
+  - `DRISHTI_COLLECTORS__SYSCALL=true`
+  - `DRISHTI_COLLECTORS__SYSCALL__TOP_N=20`
+  - `DRISHTI_COLLECTORS__SYSCALL__LATENCY_BUCKETS_USEC=1,10,50,100,500,1000,5000`

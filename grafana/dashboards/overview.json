@@ -70,6 +70,26 @@
         {"expr": "sum by (device) (rate(drishti_disk_iops_total[1m]))", "refId": "A"}
       ],
       "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8}
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Syscall Rate by Name",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {"expr": "sum by (syscall) (rate(drishti_syscall_count_total[1m]))", "refId": "A"}
+      ],
+      "gridPos": {"x": 0, "y": 24, "w": 12, "h": 8}
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Syscall Error Rate",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {"expr": "sum(rate(drishti_syscall_error_total[1m]))", "refId": "A"}
+      ],
+      "gridPos": {"x": 12, "y": 24, "w": 12, "h": 8}
     }
   ]
 }

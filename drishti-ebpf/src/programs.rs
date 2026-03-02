@@ -10,9 +10,10 @@ use drishti_common::{
     COMM_LEN, IFACE_LEN,
     events::{
         CpuRuntimeEvent, CpuWaitEvent, DiskIoEvent, DiskOp, EventKind, NetDirection,
-        NetTrafficEvent, OomKillEvent, ProcLifecycleEvent, ProcLifecycleKind, TcpRetransmitEvent,
-        TcpRttEvent,
+        NetTrafficEvent, OomKillEvent, ProcLifecycleEvent, ProcLifecycleKind, SyscallEvent,
+        TcpRetransmitEvent, TcpRttEvent,
     },
+    maps::SyscallKey,
 };
 
 #[map(name = "EVENTS")]
@@ -23,6 +24,9 @@ static LAST_RUN_TS: HashMap<u32, u64> = HashMap::with_max_entries(16384, 0);
 
 #[map(name = "WAKE_TS")]
 static WAKE_TS: HashMap<u32, u64> = HashMap::with_max_entries(16384, 0);
+
+#[map(name = "SYSCALL_START_TS")]
+static SYSCALL_START_TS: HashMap<SyscallKey, u64> = HashMap::with_max_entries(65536, 0);
 
 #[tracepoint(name = "sched_switch", category = "sched")]
 pub fn sched_switch(ctx: TracePointContext) -> u32 {
@@ -186,6 +190,53 @@ pub fn block_rq_complete(_ctx: TracePointContext) -> u32 {
     submit_event(&event)
 }
 
+#[tracepoint(name = "sys_enter", category = "raw_syscalls")]
+pub fn sys_enter(ctx: TracePointContext) -> u32 {
+    let Ok(syscall_nr) = read_i64(&ctx, 8) else {
+        return 1;
+    };
+
+    let key = SyscallKey {
+        pid: current_pid(),
+        syscall_nr,
+    };
+    let now = unsafe { bpf_ktime_get_ns() };
+    let _ = SYSCALL_START_TS.insert(&key, &now, 0);
+    0
+}
+
+#[tracepoint(name = "sys_exit", category = "raw_syscalls")]
+pub fn sys_exit(ctx: TracePointContext) -> u32 {
+    let Ok(syscall_nr) = read_i64(&ctx, 8) else {
+        return 1;
+    };
+    let Ok(ret) = read_i64(&ctx, 16) else {
+        return 1;
+    };
+
+    let pid = current_pid();
+    let tgid = current_tgid();
+    let key = SyscallKey { pid, syscall_nr };
+    let now = unsafe { bpf_ktime_get_ns() };
+
+    let latency_usec = unsafe { SYSCALL_START_TS.get(&key) }
+        .map(|start| now.saturating_sub(*start) / 1000)
+        .unwrap_or(0);
+    let _ = SYSCALL_START_TS.remove(&key);
+
+    let event = SyscallEvent {
+        kind: EventKind::Syscall as u8,
+        _pad0: [0; 3],
+        pid,
+        tgid,
+        syscall_nr,
+        ret,
+        latency_usec,
+        comm: current_comm(),
+    };
+    submit_event(&event)
+}
+
 fn emit_proc(kind: ProcLifecycleKind, exit_code: i32) -> u32 {
     let event = ProcLifecycleEvent {
         kind: EventKind::ProcLifecycle as u8,
@@ -243,6 +294,10 @@ fn submit_event<T: Copy + 'static>(value: &T) -> u32 {
         }
         None => 1,
     }
+}
+
+fn read_i64(ctx: &TracePointContext, offset: usize) -> Result<i64, i64> {
+    unsafe { ctx.read_at::<i64>(offset) }
 }
 
 #[inline(always)]

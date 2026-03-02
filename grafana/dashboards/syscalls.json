@@ -1,0 +1,42 @@
+{
+  "id": null,
+  "uid": "drishti-syscalls",
+  "title": "Drishti Syscalls",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "tags": ["drishti", "syscall"],
+  "time": {"from": "now-15m", "to": "now"},
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Syscall Count by Name",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {"expr": "sum by (syscall) (rate(drishti_syscall_count_total[1m]))", "refId": "A"}
+      ],
+      "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8}
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Syscall Error Rate by Name",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {"expr": "sum by (syscall) (rate(drishti_syscall_error_total[1m]))", "refId": "A"}
+      ],
+      "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8}
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Syscall p95 Latency by Name",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {"expr": "histogram_quantile(0.95, sum by (le, syscall) (rate(drishti_syscall_latency_usec_bucket[5m])))", "refId": "A"}
+      ],
+      "gridPos": {"x": 0, "y": 8, "w": 24, "h": 8}
+    }
+  ]
+}

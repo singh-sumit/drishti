@@ -16,6 +16,8 @@ pub mod host_stub {
         "tcp_retransmit_skb",
         "block_rq_issue",
         "block_rq_complete",
+        "sys_enter",
+        "sys_exit",
     ];
 }
 
