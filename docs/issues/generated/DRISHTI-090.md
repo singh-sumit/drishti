@@ -3,7 +3,18 @@
 Local ID: `DRISHTI-090`
 Type: `task`
 Status: `planned`
-Labels: `deferred, network`
+Milestone: `v0.2 Drishti Network+Disk`
+Labels: `deferred, network, v0.2`
 Depends on: `DRISHTI-001`
 
 Implement per-interface and per-process tx/rx telemetry and TCP RTT metrics in next milestone.
+
+## Dependency Links
+- #1
+
+## Sub-issues
+- [ ] https://github.com/singh-sumit/drishti/issues/16
+- [ ] https://github.com/singh-sumit/drishti/issues/17
+- [ ] https://github.com/singh-sumit/drishti/issues/18
+- [ ] https://github.com/singh-sumit/drishti/issues/19
+- [ ] https://github.com/singh-sumit/drishti/issues/20

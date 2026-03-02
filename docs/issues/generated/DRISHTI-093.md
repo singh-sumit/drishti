@@ -3,7 +3,11 @@
 Local ID: `DRISHTI-093`
 Type: `task`
 Status: `planned`
-Labels: `deferred, qemu, ci`
+Milestone: `v0.4 Drishti QEMU CI`
+Labels: `deferred, qemu, ci, v0.4`
 Depends on: `DRISHTI-001`
 
 Run x86_64 and aarch64 integration checks under QEMU in CI.
+
+## Dependency Links
+- #1

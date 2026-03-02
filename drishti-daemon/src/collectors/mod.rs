@@ -1,11 +1,16 @@
 pub mod cpu;
+pub mod disk;
 pub mod memory;
+pub mod network;
 pub mod process;
 
 use std::sync::Arc;
 
 use anyhow::Result;
-use drishti_common::events::{CpuRuntimeEvent, CpuWaitEvent, OomKillEvent, ProcLifecycleEvent};
+use drishti_common::events::{
+    CpuRuntimeEvent, CpuWaitEvent, DiskIoEvent, NetTrafficEvent, OomKillEvent, ProcLifecycleEvent,
+    TcpRetransmitEvent, TcpRttEvent,
+};
 use tokio::sync::{mpsc, watch};
 
 use crate::aggregator::AppMetrics;
@@ -16,6 +21,10 @@ pub enum ObservabilityEvent {
     CpuWait(CpuWaitEvent),
     ProcLifecycle(ProcLifecycleEvent),
     OomKill(OomKillEvent),
+    NetTraffic(NetTrafficEvent),
+    TcpRtt(TcpRttEvent),
+    TcpRetransmit(TcpRetransmitEvent),
+    DiskIo(DiskIoEvent),
 }
 
 pub async fn run_event_consumer(
@@ -57,5 +66,9 @@ fn handle_event(metrics: &AppMetrics, event: ObservabilityEvent) {
         ObservabilityEvent::CpuWait(event) => cpu::handle_wait(metrics, &event),
         ObservabilityEvent::ProcLifecycle(event) => process::handle_lifecycle(metrics, &event),
         ObservabilityEvent::OomKill(event) => process::handle_oom(metrics, &event),
+        ObservabilityEvent::NetTraffic(event) => network::handle_traffic(metrics, &event),
+        ObservabilityEvent::TcpRtt(event) => network::handle_tcp_rtt(metrics, &event),
+        ObservabilityEvent::TcpRetransmit(event) => network::handle_tcp_retransmit(metrics, &event),
+        ObservabilityEvent::DiskIo(event) => disk::handle_disk_io(metrics, &event),
     }
 }

@@ -2,10 +2,11 @@ use std::time::Duration;
 
 use anyhow::Result;
 use drishti_common::{
-    COMM_LEN,
+    COMM_LEN, IFACE_LEN,
     events::{
-        CpuRuntimeEvent, CpuWaitEvent, EventKind, OomKillEvent, ProcLifecycleEvent,
-        ProcLifecycleKind,
+        CpuRuntimeEvent, CpuWaitEvent, DiskIoEvent, DiskOp, EventKind, NetDirection,
+        NetTrafficEvent, OomKillEvent, ProcLifecycleEvent, ProcLifecycleKind, TcpRetransmitEvent,
+        TcpRttEvent,
     },
 };
 use tokio::{
@@ -30,6 +31,10 @@ pub async fn start(
             config.collectors.cpu,
             config.collectors.process.enabled,
             config.collectors.memory.track_oom,
+            config.collectors.network.enabled,
+            config.collectors.network.tcp_rtt,
+            config.collectors.network.tcp_retransmits,
+            config.collectors.disk.enabled,
         ))]);
     }
 
@@ -48,64 +53,173 @@ pub async fn start(
     }
 }
 
-pub async fn emit_synthetic_once(event_tx: &mpsc::Sender<ObservabilityEvent>) -> Result<()> {
-    event_tx
-        .send(ObservabilityEvent::CpuRuntime(CpuRuntimeEvent {
-            kind: EventKind::CpuRuntime as u8,
-            _pad0: [0; 3],
-            pid: 4242,
-            tgid: 4242,
-            cpu: 0,
-            run_time_ns: 120_000,
-            comm: comm_to_fixed("synthetic-cpu"),
-        }))
-        .await?;
+pub async fn emit_synthetic_once(
+    event_tx: &mpsc::Sender<ObservabilityEvent>,
+    config: &Config,
+) -> Result<()> {
+    if config.collectors.cpu {
+        event_tx
+            .send(ObservabilityEvent::CpuRuntime(CpuRuntimeEvent {
+                kind: EventKind::CpuRuntime as u8,
+                _pad0: [0; 3],
+                pid: 4242,
+                tgid: 4242,
+                cpu: 0,
+                run_time_ns: 120_000,
+                comm: fixed_from_str::<COMM_LEN>("synthetic-cpu"),
+            }))
+            .await?;
 
-    event_tx
-        .send(ObservabilityEvent::CpuWait(CpuWaitEvent {
-            kind: EventKind::CpuWait as u8,
-            _pad0: [0; 3],
-            pid: 4242,
-            tgid: 4242,
-            cpu: 0,
-            wait_time_ns: 64_000,
-            comm: comm_to_fixed("synthetic-cpu"),
-        }))
-        .await?;
+        event_tx
+            .send(ObservabilityEvent::CpuWait(CpuWaitEvent {
+                kind: EventKind::CpuWait as u8,
+                _pad0: [0; 3],
+                pid: 4242,
+                tgid: 4242,
+                cpu: 0,
+                wait_time_ns: 64_000,
+                comm: fixed_from_str::<COMM_LEN>("synthetic-cpu"),
+            }))
+            .await?;
+    }
 
-    event_tx
-        .send(ObservabilityEvent::ProcLifecycle(ProcLifecycleEvent {
-            kind: EventKind::ProcLifecycle as u8,
-            lifecycle: ProcLifecycleKind::Exec as u8,
-            _pad0: [0; 2],
-            pid: 4242,
-            tgid: 4242,
-            ppid: 1,
-            exit_code: 0,
-            comm: comm_to_fixed("synthetic-proc"),
-        }))
-        .await?;
+    if config.collectors.process.enabled {
+        event_tx
+            .send(ObservabilityEvent::ProcLifecycle(ProcLifecycleEvent {
+                kind: EventKind::ProcLifecycle as u8,
+                lifecycle: ProcLifecycleKind::Exec as u8,
+                _pad0: [0; 2],
+                pid: 4242,
+                tgid: 4242,
+                ppid: 1,
+                exit_code: 0,
+                comm: fixed_from_str::<COMM_LEN>("synthetic-proc"),
+            }))
+            .await?;
+    }
 
-    event_tx
-        .send(ObservabilityEvent::OomKill(OomKillEvent {
-            kind: EventKind::OomKill as u8,
-            _pad0: [0; 3],
-            pid: 4242,
-            tgid: 4242,
-            pages: 1,
-            comm: comm_to_fixed("synthetic-oom"),
-        }))
-        .await?;
+    if config.collectors.memory.track_oom {
+        event_tx
+            .send(ObservabilityEvent::OomKill(OomKillEvent {
+                kind: EventKind::OomKill as u8,
+                _pad0: [0; 3],
+                pid: 4242,
+                tgid: 4242,
+                pages: 1,
+                comm: fixed_from_str::<COMM_LEN>("synthetic-oom"),
+            }))
+            .await?;
+    }
+
+    if config.collectors.network.enabled {
+        event_tx
+            .send(ObservabilityEvent::NetTraffic(NetTrafficEvent {
+                kind: EventKind::NetTraffic as u8,
+                direction: NetDirection::Tx as u8,
+                _pad0: [0; 2],
+                pid: 4242,
+                tgid: 4242,
+                ifindex: 2,
+                bytes: 2048,
+                packets: 8,
+                comm: fixed_from_str::<COMM_LEN>("synthetic-net"),
+                iface: fixed_from_str::<IFACE_LEN>("eth0"),
+            }))
+            .await?;
+
+        event_tx
+            .send(ObservabilityEvent::NetTraffic(NetTrafficEvent {
+                kind: EventKind::NetTraffic as u8,
+                direction: NetDirection::Rx as u8,
+                _pad0: [0; 2],
+                pid: 4242,
+                tgid: 4242,
+                ifindex: 2,
+                bytes: 1024,
+                packets: 5,
+                comm: fixed_from_str::<COMM_LEN>("synthetic-net"),
+                iface: fixed_from_str::<IFACE_LEN>("eth0"),
+            }))
+            .await?;
+
+        if config.collectors.network.tcp_rtt {
+            event_tx
+                .send(ObservabilityEvent::TcpRtt(TcpRttEvent {
+                    kind: EventKind::TcpRtt as u8,
+                    _pad0: [0; 3],
+                    pid: 4242,
+                    tgid: 4242,
+                    ifindex: 2,
+                    rtt_usec: 120,
+                    comm: fixed_from_str::<COMM_LEN>("synthetic-net"),
+                    iface: fixed_from_str::<IFACE_LEN>("eth0"),
+                }))
+                .await?;
+        }
+
+        if config.collectors.network.tcp_retransmits {
+            event_tx
+                .send(ObservabilityEvent::TcpRetransmit(TcpRetransmitEvent {
+                    kind: EventKind::TcpRetransmit as u8,
+                    _pad0: [0; 3],
+                    pid: 4242,
+                    tgid: 4242,
+                    ifindex: 2,
+                    comm: fixed_from_str::<COMM_LEN>("synthetic-net"),
+                    iface: fixed_from_str::<IFACE_LEN>("eth0"),
+                }))
+                .await?;
+        }
+    }
+
+    if config.collectors.disk.enabled {
+        event_tx
+            .send(ObservabilityEvent::DiskIo(DiskIoEvent {
+                kind: EventKind::DiskIo as u8,
+                op: DiskOp::Read as u8,
+                _pad0: [0; 2],
+                pid: 4242,
+                tgid: 4242,
+                dev_major: 8,
+                dev_minor: 0,
+                bytes: 4096,
+                latency_usec: 350,
+                queue_depth: 2,
+                comm: fixed_from_str::<COMM_LEN>("synthetic-disk"),
+            }))
+            .await?;
+
+        event_tx
+            .send(ObservabilityEvent::DiskIo(DiskIoEvent {
+                kind: EventKind::DiskIo as u8,
+                op: DiskOp::Write as u8,
+                _pad0: [0; 2],
+                pid: 4242,
+                tgid: 4242,
+                dev_major: 8,
+                dev_minor: 0,
+                bytes: 2048,
+                latency_usec: 210,
+                queue_depth: 1,
+                comm: fixed_from_str::<COMM_LEN>("synthetic-disk"),
+            }))
+            .await?;
+    }
 
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn run_synthetic_stream(
     event_tx: mpsc::Sender<ObservabilityEvent>,
     mut shutdown_rx: watch::Receiver<bool>,
     cpu_enabled: bool,
     process_enabled: bool,
     oom_enabled: bool,
+    network_enabled: bool,
+    network_rtt_enabled: bool,
+    network_retransmits_enabled: bool,
+    disk_enabled: bool,
 ) -> Result<()> {
     let mut interval = tokio::time::interval(Duration::from_millis(250));
     let mut tick: u64 = 0;
@@ -127,7 +241,7 @@ async fn run_synthetic_stream(
                         tgid: 1200,
                         cpu: (tick % 2) as u32,
                         run_time_ns: 100_000 + tick,
-                        comm: comm_to_fixed("synthetic-cpu"),
+                        comm: fixed_from_str::<COMM_LEN>("synthetic-cpu"),
                     })).await?;
 
                     event_tx.send(ObservabilityEvent::CpuWait(CpuWaitEvent {
@@ -137,7 +251,7 @@ async fn run_synthetic_stream(
                         tgid: 1200,
                         cpu: (tick % 2) as u32,
                         wait_time_ns: 50_000 + tick,
-                        comm: comm_to_fixed("synthetic-cpu"),
+                        comm: fixed_from_str::<COMM_LEN>("synthetic-cpu"),
                     })).await?;
                 }
 
@@ -150,7 +264,7 @@ async fn run_synthetic_stream(
                         tgid: 1200,
                         ppid: 1,
                         exit_code: 0,
-                        comm: comm_to_fixed("synthetic-proc"),
+                        comm: fixed_from_str::<COMM_LEN>("synthetic-proc"),
                     })).await?;
                 }
 
@@ -161,7 +275,85 @@ async fn run_synthetic_stream(
                         pid: 1200,
                         tgid: 1200,
                         pages: 32,
-                        comm: comm_to_fixed("synthetic-oom"),
+                        comm: fixed_from_str::<COMM_LEN>("synthetic-oom"),
+                    })).await?;
+                }
+
+                if network_enabled {
+                    let ifindex = if tick % 2 == 0 { 2 } else { 3 };
+                    let iface = if ifindex == 2 { "eth0" } else { "wlan0" };
+
+                    event_tx.send(ObservabilityEvent::NetTraffic(NetTrafficEvent {
+                        kind: EventKind::NetTraffic as u8,
+                        direction: NetDirection::Tx as u8,
+                        _pad0: [0; 2],
+                        pid: 1200,
+                        tgid: 1200,
+                        ifindex,
+                        bytes: 2_000 + tick,
+                        packets: 4 + (tick % 3),
+                        comm: fixed_from_str::<COMM_LEN>("synthetic-net"),
+                        iface: fixed_from_str::<IFACE_LEN>(iface),
+                    })).await?;
+
+                    event_tx.send(ObservabilityEvent::NetTraffic(NetTrafficEvent {
+                        kind: EventKind::NetTraffic as u8,
+                        direction: NetDirection::Rx as u8,
+                        _pad0: [0; 2],
+                        pid: 1200,
+                        tgid: 1200,
+                        ifindex,
+                        bytes: 1_000 + tick,
+                        packets: 3 + (tick % 2),
+                        comm: fixed_from_str::<COMM_LEN>("synthetic-net"),
+                        iface: fixed_from_str::<IFACE_LEN>(iface),
+                    })).await?;
+
+                    if network_rtt_enabled {
+                        event_tx.send(ObservabilityEvent::TcpRtt(TcpRttEvent {
+                            kind: EventKind::TcpRtt as u8,
+                            _pad0: [0; 3],
+                            pid: 1200,
+                            tgid: 1200,
+                            ifindex,
+                            rtt_usec: 80 + (tick % 20) as u32,
+                            comm: fixed_from_str::<COMM_LEN>("synthetic-net"),
+                            iface: fixed_from_str::<IFACE_LEN>(iface),
+                        })).await?;
+                    }
+
+                    if network_retransmits_enabled && tick % 4 == 0 {
+                        event_tx.send(ObservabilityEvent::TcpRetransmit(TcpRetransmitEvent {
+                            kind: EventKind::TcpRetransmit as u8,
+                            _pad0: [0; 3],
+                            pid: 1200,
+                            tgid: 1200,
+                            ifindex,
+                            comm: fixed_from_str::<COMM_LEN>("synthetic-net"),
+                            iface: fixed_from_str::<IFACE_LEN>(iface),
+                        })).await?;
+                    }
+                }
+
+                if disk_enabled {
+                    let op = if tick % 2 == 0 {
+                        DiskOp::Read
+                    } else {
+                        DiskOp::Write
+                    };
+
+                    event_tx.send(ObservabilityEvent::DiskIo(DiskIoEvent {
+                        kind: EventKind::DiskIo as u8,
+                        op: op as u8,
+                        _pad0: [0; 2],
+                        pid: 1200,
+                        tgid: 1200,
+                        dev_major: 8,
+                        dev_minor: 0,
+                        bytes: 4096 + tick,
+                        latency_usec: 120 + tick,
+                        queue_depth: (tick % 8) as u32,
+                        comm: fixed_from_str::<COMM_LEN>("synthetic-disk"),
                     })).await?;
                 }
             }
@@ -171,12 +363,12 @@ async fn run_synthetic_stream(
     Ok(())
 }
 
-fn comm_to_fixed(value: &str) -> [u8; COMM_LEN] {
-    let mut comm = [0u8; COMM_LEN];
+fn fixed_from_str<const N: usize>(value: &str) -> [u8; N] {
+    let mut field = [0u8; N];
     let bytes = value.as_bytes();
-    let copy_len = bytes.len().min(COMM_LEN);
-    comm[..copy_len].copy_from_slice(&bytes[..copy_len]);
-    comm
+    let copy_len = bytes.len().min(N);
+    field[..copy_len].copy_from_slice(&bytes[..copy_len]);
+    field
 }
 
 #[cfg(feature = "ebpf-runtime")]
@@ -186,7 +378,8 @@ mod ebpf_runtime {
     use anyhow::{Context, Result};
     use aya::{Ebpf, maps::ring_buf::RingBuf, programs::TracePoint};
     use drishti_common::events::{
-        CpuRuntimeEvent, CpuWaitEvent, EventKind, OomKillEvent, ProcLifecycleEvent,
+        CpuRuntimeEvent, CpuWaitEvent, DiskIoEvent, EventKind, NetTrafficEvent, OomKillEvent,
+        ProcLifecycleEvent, TcpRetransmitEvent, TcpRttEvent,
     };
     use tokio::{
         sync::{mpsc, watch},
@@ -235,6 +428,28 @@ mod ebpf_runtime {
             {
                 warn!(error = %err, "OOM tracepoint not available on this kernel");
             }
+        }
+
+        if config.collectors.network.enabled {
+            attach_optional_tracepoint(&mut bpf, "net_dev_xmit", "net", "net_dev_xmit");
+            attach_optional_tracepoint(&mut bpf, "netif_receive_skb", "net", "netif_receive_skb");
+
+            if config.collectors.network.tcp_rtt {
+                attach_optional_tracepoint(&mut bpf, "tcp_probe", "tcp", "tcp_probe");
+            }
+            if config.collectors.network.tcp_retransmits {
+                attach_optional_tracepoint(
+                    &mut bpf,
+                    "tcp_retransmit_skb",
+                    "tcp",
+                    "tcp_retransmit_skb",
+                );
+            }
+        }
+
+        if config.collectors.disk.enabled {
+            attach_optional_tracepoint(&mut bpf, "block_rq_issue", "block", "block_rq_issue");
+            attach_optional_tracepoint(&mut bpf, "block_rq_complete", "block", "block_rq_complete");
         }
 
         let mut ring = RingBuf::try_from(
@@ -306,6 +521,18 @@ mod ebpf_runtime {
         Ok(())
     }
 
+    fn attach_optional_tracepoint(bpf: &mut Ebpf, program_name: &str, category: &str, name: &str) {
+        if let Err(err) = attach_tracepoint(bpf, program_name, category, name) {
+            warn!(
+                program = program_name,
+                category,
+                name,
+                error = %err,
+                "optional tracepoint attach failed; collector feature will be partially disabled"
+            );
+        }
+    }
+
     fn parse_ring_event(payload: &[u8]) -> Option<ObservabilityEvent> {
         let kind = *payload.first()?;
         match kind {
@@ -320,6 +547,18 @@ mod ebpf_runtime {
             }
             x if x == EventKind::OomKill as u8 => {
                 read_event::<OomKillEvent>(payload).map(ObservabilityEvent::OomKill)
+            }
+            x if x == EventKind::NetTraffic as u8 => {
+                read_event::<NetTrafficEvent>(payload).map(ObservabilityEvent::NetTraffic)
+            }
+            x if x == EventKind::TcpRtt as u8 => {
+                read_event::<TcpRttEvent>(payload).map(ObservabilityEvent::TcpRtt)
+            }
+            x if x == EventKind::TcpRetransmit as u8 => {
+                read_event::<TcpRetransmitEvent>(payload).map(ObservabilityEvent::TcpRetransmit)
+            }
+            x if x == EventKind::DiskIo as u8 => {
+                read_event::<DiskIoEvent>(payload).map(ObservabilityEvent::DiskIo)
             }
             _ => {
                 warn!(kind, "unknown event kind from ring buffer");

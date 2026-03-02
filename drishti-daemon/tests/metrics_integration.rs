@@ -57,7 +57,14 @@ fn http_get(port: u16, path: &str) -> Result<String, String> {
         .ok_or_else(|| "invalid HTTP response".to_string())
 }
 
-fn write_config(path: &PathBuf, port: u16, cpu_enabled: bool, process_enabled: bool) {
+fn write_config(
+    path: &PathBuf,
+    port: u16,
+    cpu_enabled: bool,
+    process_enabled: bool,
+    network_enabled: bool,
+    disk_enabled: bool,
+) {
     let config = format!(
         r#"
 [daemon]
@@ -74,6 +81,17 @@ track_threads = false
 enabled = true
 poll_interval_ms = 250
 track_oom = true
+
+[collectors.network]
+enabled = {network_enabled}
+interfaces = []
+tcp_rtt = true
+tcp_retransmits = true
+
+[collectors.disk]
+enabled = {disk_enabled}
+devices = []
+latency_buckets_usec = [10,50,100,500,1000,5000,10000]
 
 [filters]
 exclude_pids = []
@@ -148,7 +166,7 @@ fn metrics_endpoint_exposes_core_series() {
     let Some(port) = reserve_port() else {
         return;
     };
-    write_config(&config_path, port, true, true);
+    write_config(&config_path, port, true, true, true, true);
 
     let mut daemon = spawn_daemon(&config_path);
     wait_for_health(port);
@@ -159,18 +177,26 @@ fn metrics_endpoint_exposes_core_series() {
     assert!(metrics.contains("drishti_cpu_wait_time_ns_total{"));
     assert!(metrics.contains("drishti_proc_lifecycle_total{"));
     assert!(metrics.contains("drishti_mem_rss_bytes{"));
+    assert!(metrics.contains("drishti_net_tx_bytes_total{"));
+    assert!(metrics.contains("drishti_net_rx_bytes_total{"));
+    assert!(metrics.contains("drishti_net_tcp_rtt_usec_sum{"));
+    assert!(metrics.contains("drishti_disk_read_bytes_total{"));
+    assert!(metrics.contains("drishti_disk_write_bytes_total{"));
+    assert!(metrics.contains("drishti_disk_iops_total{"));
+    assert!(metrics.contains("drishti_disk_io_latency_usec_sum{"));
+    assert!(metrics.contains("drishti_disk_queue_depth{"));
 
     stop_daemon(&mut daemon);
 }
 
 #[test]
-fn disabled_collectors_do_not_emit_cpu_process_series() {
+fn disabled_collectors_do_not_emit_cpu_process_network_disk_series() {
     let temp = tempdir().expect("temp dir should be created");
     let config_path = temp.path().join("drishti-disabled.toml");
     let Some(port) = reserve_port() else {
         return;
     };
-    write_config(&config_path, port, false, false);
+    write_config(&config_path, port, false, false, false, false);
 
     let mut daemon = spawn_daemon(&config_path);
     wait_for_health(port);
@@ -179,6 +205,10 @@ fn disabled_collectors_do_not_emit_cpu_process_series() {
 
     assert!(!metrics.contains("drishti_cpu_run_time_ns_total{"));
     assert!(!metrics.contains("drishti_proc_lifecycle_total{"));
+    assert!(!metrics.contains("drishti_net_tx_bytes_total{"));
+    assert!(!metrics.contains("drishti_net_rx_bytes_total{"));
+    assert!(!metrics.contains("drishti_disk_read_bytes_total{"));
+    assert!(!metrics.contains("drishti_disk_iops_total{"));
     assert!(metrics.contains("drishti_mem_rss_bytes{"));
 
     stop_daemon(&mut daemon);

@@ -43,6 +43,10 @@ pub struct CollectorsConfig {
     pub memory: MemoryCollectorConfig,
     #[serde(default)]
     pub process: ProcessCollectorConfig,
+    #[serde(default, deserialize_with = "deserialize_network_collector")]
+    pub network: NetworkCollectorConfig,
+    #[serde(default, deserialize_with = "deserialize_disk_collector")]
+    pub disk: DiskCollectorConfig,
 }
 
 impl Default for CollectorsConfig {
@@ -51,6 +55,8 @@ impl Default for CollectorsConfig {
             cpu: true,
             memory: MemoryCollectorConfig::default(),
             process: ProcessCollectorConfig::default(),
+            network: NetworkCollectorConfig::default(),
+            disk: DiskCollectorConfig::default(),
         }
     }
 }
@@ -88,6 +94,49 @@ impl Default for MemoryCollectorConfig {
             enabled: true,
             poll_interval_ms: default_memory_poll_ms(),
             track_oom: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NetworkCollectorConfig {
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    #[serde(default)]
+    pub interfaces: Vec<String>,
+    #[serde(default = "default_true")]
+    pub tcp_rtt: bool,
+    #[serde(default = "default_true")]
+    pub tcp_retransmits: bool,
+}
+
+impl Default for NetworkCollectorConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            interfaces: Vec::new(),
+            tcp_rtt: true,
+            tcp_retransmits: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DiskCollectorConfig {
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    #[serde(default)]
+    pub devices: Vec<String>,
+    #[serde(default = "default_latency_buckets_usec")]
+    pub latency_buckets_usec: Vec<u64>,
+}
+
+impl Default for DiskCollectorConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            devices: Vec::new(),
+            latency_buckets_usec: default_latency_buckets_usec(),
         }
     }
 }
@@ -136,6 +185,52 @@ impl Config {
     }
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+enum BoolOrNetworkConfig {
+    Enabled(bool),
+    Config(NetworkCollectorConfig),
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+enum BoolOrDiskConfig {
+    Enabled(bool),
+    Config(DiskCollectorConfig),
+}
+
+fn deserialize_network_collector<'de, D>(
+    deserializer: D,
+) -> std::result::Result<NetworkCollectorConfig, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    match Option::<BoolOrNetworkConfig>::deserialize(deserializer)? {
+        None => Ok(NetworkCollectorConfig::default()),
+        Some(BoolOrNetworkConfig::Enabled(enabled)) => Ok(NetworkCollectorConfig {
+            enabled,
+            ..NetworkCollectorConfig::default()
+        }),
+        Some(BoolOrNetworkConfig::Config(config)) => Ok(config),
+    }
+}
+
+fn deserialize_disk_collector<'de, D>(
+    deserializer: D,
+) -> std::result::Result<DiskCollectorConfig, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    match Option::<BoolOrDiskConfig>::deserialize(deserializer)? {
+        None => Ok(DiskCollectorConfig::default()),
+        Some(BoolOrDiskConfig::Enabled(enabled)) => Ok(DiskCollectorConfig {
+            enabled,
+            ..DiskCollectorConfig::default()
+        }),
+        Some(BoolOrDiskConfig::Config(config)) => Ok(config),
+    }
+}
+
 fn apply_env_overrides<I>(cfg: &mut Config, vars: I)
 where
     I: IntoIterator<Item = (String, String)>,
@@ -158,6 +253,12 @@ where
             "COLLECTORS__PROCESS" => {
                 cfg.collectors.process.enabled = parse_bool(&value, cfg.collectors.process.enabled)
             }
+            "COLLECTORS__NETWORK" => {
+                cfg.collectors.network.enabled = parse_bool(&value, cfg.collectors.network.enabled)
+            }
+            "COLLECTORS__DISK" => {
+                cfg.collectors.disk.enabled = parse_bool(&value, cfg.collectors.disk.enabled)
+            }
             "COLLECTORS__PROCESS__TRACK_THREADS" => {
                 cfg.collectors.process.track_threads =
                     parse_bool(&value, cfg.collectors.process.track_threads)
@@ -170,6 +271,22 @@ where
             "COLLECTORS__MEMORY__TRACK_OOM" => {
                 cfg.collectors.memory.track_oom =
                     parse_bool(&value, cfg.collectors.memory.track_oom)
+            }
+            "COLLECTORS__NETWORK__INTERFACES" => {
+                cfg.collectors.network.interfaces = parse_string_list(&value);
+            }
+            "COLLECTORS__NETWORK__TCP_RTT" => {
+                cfg.collectors.network.tcp_rtt = parse_bool(&value, cfg.collectors.network.tcp_rtt)
+            }
+            "COLLECTORS__NETWORK__TCP_RETRANSMITS" => {
+                cfg.collectors.network.tcp_retransmits =
+                    parse_bool(&value, cfg.collectors.network.tcp_retransmits)
+            }
+            "COLLECTORS__DISK__DEVICES" => {
+                cfg.collectors.disk.devices = parse_string_list(&value);
+            }
+            "COLLECTORS__DISK__LATENCY_BUCKETS_USEC" => {
+                cfg.collectors.disk.latency_buckets_usec = parse_u64_list(&value);
             }
             "FILTERS__EXCLUDE_PIDS" => {
                 cfg.filters.exclude_pids = parse_u32_list(&value);
@@ -218,6 +335,15 @@ fn parse_u32_list(value: &str) -> Vec<u32> {
         .collect()
 }
 
+fn parse_u64_list(value: &str) -> Vec<u64> {
+    value
+        .split(',')
+        .map(str::trim)
+        .filter(|item| !item.is_empty())
+        .filter_map(|item| item.parse::<u64>().ok())
+        .collect()
+}
+
 fn default_pid_file() -> String {
     "/var/run/drishti.pid".to_string()
 }
@@ -246,6 +372,10 @@ const fn default_max_series() -> usize {
     10_000
 }
 
+fn default_latency_buckets_usec() -> Vec<u64> {
+    vec![10, 50, 100, 500, 1000, 5000, 10_000]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -255,6 +385,10 @@ mod tests {
         let cfg: Config = toml::from_str("").expect("empty config should parse");
         assert!(cfg.collectors.cpu);
         assert!(cfg.collectors.memory.enabled);
+        assert!(cfg.collectors.network.enabled);
+        assert!(cfg.collectors.disk.enabled);
+        assert!(cfg.collectors.network.interfaces.is_empty());
+        assert!(cfg.collectors.disk.devices.is_empty());
         assert_eq!(cfg.daemon.metrics_addr, "0.0.0.0:9090");
         assert_eq!(cfg.export.max_series, 10_000);
     }
@@ -276,6 +410,22 @@ mod tests {
                     "kworker,init".to_string(),
                 ),
                 ("DRISHTI_EXPORT__MAX_SERIES".to_string(), "42".to_string()),
+                (
+                    "DRISHTI_COLLECTORS__NETWORK".to_string(),
+                    "false".to_string(),
+                ),
+                (
+                    "DRISHTI_COLLECTORS__NETWORK__INTERFACES".to_string(),
+                    "eth0,wlan0".to_string(),
+                ),
+                (
+                    "DRISHTI_COLLECTORS__DISK__DEVICES".to_string(),
+                    "sda,nvme0n1".to_string(),
+                ),
+                (
+                    "DRISHTI_COLLECTORS__DISK__LATENCY_BUCKETS_USEC".to_string(),
+                    "5,25,100".to_string(),
+                ),
             ],
         );
 
@@ -283,5 +433,24 @@ mod tests {
         assert_eq!(cfg.collectors.memory.poll_interval_ms, 250);
         assert_eq!(cfg.filters.exclude_comms, vec!["kworker", "init"]);
         assert_eq!(cfg.export.max_series, 42);
+        assert!(!cfg.collectors.network.enabled);
+        assert_eq!(cfg.collectors.network.interfaces, vec!["eth0", "wlan0"]);
+        assert_eq!(cfg.collectors.disk.devices, vec!["sda", "nvme0n1"]);
+        assert_eq!(cfg.collectors.disk.latency_buckets_usec, vec![5, 25, 100]);
+    }
+
+    #[test]
+    fn parse_collector_bool_shorthand() {
+        let cfg: Config = toml::from_str(
+            r#"
+            [collectors]
+            network = false
+            disk = true
+            "#,
+        )
+        .expect("collector shorthand should parse");
+
+        assert!(!cfg.collectors.network.enabled);
+        assert!(cfg.collectors.disk.enabled);
     }
 }

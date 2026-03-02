@@ -3,6 +3,7 @@
 Local ID: `DRISHTI-001`
 Type: `epic`
 Status: `done`
+Milestone: `v0.1 Drishti Core`
 Labels: `epic, v0.1`
 
 Track delivery of the v0.1 observability daemon scope.

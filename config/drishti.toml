@@ -15,6 +15,17 @@ enabled = true
 poll_interval_ms = 1000
 track_oom = true
 
+[collectors.network]
+enabled = true
+interfaces = []
+tcp_rtt = true
+tcp_retransmits = true
+
+[collectors.disk]
+enabled = true
+devices = []
+latency_buckets_usec = [10, 50, 100, 500, 1000, 5000, 10000]
+
 [filters]
 exclude_pids = [1, 2]
 exclude_comms = ["kworker"]

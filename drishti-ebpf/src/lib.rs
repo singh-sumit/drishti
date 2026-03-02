@@ -10,6 +10,12 @@ pub mod host_stub {
         "sched_process_exec",
         "sched_process_exit",
         "oom_kill_process",
+        "net_dev_xmit",
+        "netif_receive_skb",
+        "tcp_probe",
+        "tcp_retransmit_skb",
+        "block_rq_issue",
+        "block_rq_complete",
     ];
 }
 
