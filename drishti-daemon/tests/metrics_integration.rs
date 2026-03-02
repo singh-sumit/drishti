@@ -43,6 +43,28 @@ fn wait_for_health(port: u16) {
     panic!("daemon did not become healthy in time");
 }
 
+fn wait_for_metrics(port: u16, required_series: &[&str]) -> String {
+    let deadline = Instant::now() + Duration::from_secs(15);
+    let mut last_body = String::new();
+
+    while Instant::now() < deadline {
+        if let Ok(response) = http_get(port, "/metrics") {
+            if response.status_code == 200 {
+                let body = response.body;
+                if required_series.iter().all(|series| body.contains(series)) {
+                    return body;
+                }
+                last_body = body;
+            }
+        }
+        thread::sleep(Duration::from_millis(200));
+    }
+
+    panic!(
+        "required metrics were not observed in time; expected: {required_series:?}\nlast response:\n{last_body}"
+    );
+}
+
 fn http_get(port: u16, path: &str) -> Result<HttpResponse, String> {
     let mut stream = TcpStream::connect(("127.0.0.1", port)).map_err(|err| err.to_string())?;
     let request = format!("GET {path} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n");
@@ -199,25 +221,29 @@ fn metrics_endpoint_exposes_core_series() {
     assert_eq!(health.status_code, 200);
     assert!(health.body.contains("ok"));
 
-    let metrics = http_get(port, "/metrics").expect("metrics response should succeed");
-    assert_eq!(metrics.status_code, 200);
-    let metrics = metrics.body;
+    let metrics = wait_for_metrics(
+        port,
+        &[
+            "drishti_cpu_run_time_ns_total{",
+            "drishti_cpu_wait_time_ns_total{",
+            "drishti_proc_lifecycle_total{",
+            "drishti_mem_rss_bytes{",
+            "drishti_net_tx_bytes_total{",
+            "drishti_net_rx_bytes_total{",
+            "drishti_net_tcp_rtt_usec_sum{",
+            "drishti_disk_read_bytes_total{",
+            "drishti_disk_write_bytes_total{",
+            "drishti_disk_iops_total{",
+            "drishti_disk_io_latency_usec_sum{",
+            "drishti_disk_queue_depth{",
+            "drishti_syscall_count_total{",
+            "drishti_syscall_error_total{",
+            "drishti_syscall_latency_usec_sum{",
+        ],
+    );
 
     assert!(metrics.contains("drishti_cpu_run_time_ns_total{"));
-    assert!(metrics.contains("drishti_cpu_wait_time_ns_total{"));
-    assert!(metrics.contains("drishti_proc_lifecycle_total{"));
-    assert!(metrics.contains("drishti_mem_rss_bytes{"));
-    assert!(metrics.contains("drishti_net_tx_bytes_total{"));
-    assert!(metrics.contains("drishti_net_rx_bytes_total{"));
-    assert!(metrics.contains("drishti_net_tcp_rtt_usec_sum{"));
-    assert!(metrics.contains("drishti_disk_read_bytes_total{"));
-    assert!(metrics.contains("drishti_disk_write_bytes_total{"));
-    assert!(metrics.contains("drishti_disk_iops_total{"));
-    assert!(metrics.contains("drishti_disk_io_latency_usec_sum{"));
-    assert!(metrics.contains("drishti_disk_queue_depth{"));
-    assert!(metrics.contains("drishti_syscall_count_total{"));
     assert!(metrics.contains("drishti_syscall_error_total{"));
-    assert!(metrics.contains("drishti_syscall_latency_usec_sum{"));
 
     stop_daemon(&mut daemon);
 }
