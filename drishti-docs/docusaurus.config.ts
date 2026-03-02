@@ -25,6 +25,22 @@ const config: Config = {
     },
   },
   themes: ['@docusaurus/theme-mermaid'],
+  plugins: [
+    function ignoreMermaidServerWarning() {
+      return {
+        name: 'ignore-mermaid-server-warning',
+        configureWebpack() {
+          return {
+            ignoreWarnings: [
+              (warning: {message?: string; module?: {resource?: string}}) =>
+                warning?.message?.includes('Critical dependency: require function') &&
+                warning?.module?.resource?.includes('vscode-languageserver-types/lib/umd/main.js'),
+            ],
+          };
+        },
+      };
+    },
+  ],
   presets: [
     [
       'classic',

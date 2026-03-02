@@ -12,6 +12,10 @@ npm ci
 npm run start
 ```
 
+With `baseUrl=/drishti/`, local preview routes are served under:
+
+- `http://localhost:3000/drishti/` (`npm run serve`)
+
 ## Production Build
 
 ```bash
