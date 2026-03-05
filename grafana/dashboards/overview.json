@@ -12,7 +12,7 @@
       "id": 1,
       "type": "timeseries",
       "title": "CPU Runtime by Process",
-      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "datasource": "Prometheus",
       "targets": [
         {"expr": "sum by (comm) (rate(drishti_cpu_run_time_ns_total[1m]))", "refId": "A"}
       ],
@@ -22,7 +22,7 @@
       "id": 2,
       "type": "timeseries",
       "title": "RSS by Process",
-      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "datasource": "Prometheus",
       "targets": [
         {"expr": "topk(10, drishti_mem_rss_bytes)", "refId": "A"}
       ],
@@ -32,7 +32,7 @@
       "id": 3,
       "type": "timeseries",
       "title": "Process Lifecycle Events",
-      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "datasource": "Prometheus",
       "targets": [
         {"expr": "sum by (event) (rate(drishti_proc_lifecycle_total[1m]))", "refId": "A"}
       ],
@@ -42,7 +42,7 @@
       "id": 4,
       "type": "timeseries",
       "title": "System Memory",
-      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "datasource": "Prometheus",
       "targets": [
         {"expr": "drishti_mem_available_bytes", "legendFormat": "available", "refId": "A"},
         {"expr": "drishti_mem_cache_bytes", "legendFormat": "cache", "refId": "B"},
@@ -54,7 +54,7 @@
       "id": 5,
       "type": "timeseries",
       "title": "Network Throughput by Interface",
-      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "datasource": "Prometheus",
       "targets": [
         {"expr": "sum by (iface) (rate(drishti_net_tx_bytes_total[1m]))", "legendFormat": "tx {{iface}}", "refId": "A"},
         {"expr": "sum by (iface) (rate(drishti_net_rx_bytes_total[1m]))", "legendFormat": "rx {{iface}}", "refId": "B"}
@@ -65,7 +65,7 @@
       "id": 6,
       "type": "timeseries",
       "title": "Disk IOPS by Device",
-      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "datasource": "Prometheus",
       "targets": [
         {"expr": "sum by (device) (rate(drishti_disk_iops_total[1m]))", "refId": "A"}
       ],
@@ -75,7 +75,7 @@
       "id": 7,
       "type": "timeseries",
       "title": "Syscall Rate by Name",
-      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "datasource": "Prometheus",
       "targets": [
         {"expr": "sum by (syscall) (rate(drishti_syscall_count_total[1m]))", "refId": "A"}
       ],
@@ -85,7 +85,7 @@
       "id": 8,
       "type": "timeseries",
       "title": "Syscall Error Rate",
-      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "datasource": "Prometheus",
       "targets": [
         {"expr": "sum(rate(drishti_syscall_error_total[1m]))", "refId": "A"}
       ],
