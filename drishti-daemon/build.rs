@@ -1,4 +1,7 @@
-use std::{env, fs, path::PathBuf};
+use std::{
+    env, fs,
+    path::{Path, PathBuf},
+};
 
 fn main() {
     println!("cargo:rerun-if-env-changed=DRISHTI_EMBEDDED_BPF_PATH");
@@ -9,7 +12,13 @@ fn main() {
     let out_file = out_dir.join("drishti.bpf.o");
 
     if let Ok(path) = env::var("DRISHTI_EMBEDDED_BPF_PATH") {
-        let from = PathBuf::from(path);
+        let from = resolve_embedded_bpf_path(&path).unwrap_or_else(|err| {
+            panic!(
+                "failed to resolve DRISHTI_EMBEDDED_BPF_PATH `{path}`: {err}. \
+use an absolute path like `$(pwd)/target/bpfel-unknown-none/release/drishti-ebpf`"
+            )
+        });
+        let from = fs::canonicalize(&from).unwrap_or(from);
         println!("cargo:rerun-if-changed={}", from.display());
 
         let bytes = fs::read(&from).unwrap_or_else(|err| {
@@ -63,4 +72,39 @@ fn looks_like_bpf_elf(bytes: &[u8]) -> bool {
     };
 
     machine == EM_BPF
+}
+
+fn resolve_embedded_bpf_path(raw: &str) -> Result<PathBuf, String> {
+    let direct = PathBuf::from(raw);
+    if direct.is_absolute() {
+        return Ok(direct);
+    }
+
+    let manifest_dir = PathBuf::from(
+        env::var("CARGO_MANIFEST_DIR")
+            .map_err(|err| format!("CARGO_MANIFEST_DIR missing: {err}"))?,
+    );
+    let workspace_root = manifest_dir
+        .parent()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| manifest_dir.clone());
+
+    let candidates = [
+        direct.clone(),
+        manifest_dir.join(raw),
+        workspace_root.join(raw),
+    ];
+
+    for candidate in &candidates {
+        if candidate.exists() {
+            return Ok(candidate.clone());
+        }
+    }
+
+    let attempted = candidates
+        .iter()
+        .map(|value| value.display().to_string())
+        .collect::<Vec<_>>()
+        .join(", ");
+    Err(format!("path not found; attempted: {attempted}"))
 }

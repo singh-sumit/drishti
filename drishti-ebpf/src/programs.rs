@@ -1,11 +1,13 @@
 #![allow(unsafe_code)]
 
 use aya_ebpf::{
+    cty::c_void,
     helpers::{bpf_get_current_pid_tgid, bpf_ktime_get_ns},
     macros::{map, tracepoint},
     maps::{HashMap, RingBuf},
     programs::TracePointContext,
 };
+use aya_ebpf_bindings::helpers::bpf_get_current_comm;
 use drishti_common::{
     COMM_LEN, IFACE_LEN,
     events::{
@@ -192,9 +194,10 @@ pub fn block_rq_complete(_ctx: TracePointContext) -> u32 {
 
 #[tracepoint(name = "sys_enter", category = "raw_syscalls")]
 pub fn sys_enter(ctx: TracePointContext) -> u32 {
-    let Ok(syscall_nr) = read_i64(&ctx, 8) else {
+    let syscall_nr = read_syscall_nr_or_invalid(&ctx);
+    if syscall_nr < 0 {
         return 1;
-    };
+    }
 
     let key = SyscallKey {
         pid: current_pid(),
@@ -207,12 +210,14 @@ pub fn sys_enter(ctx: TracePointContext) -> u32 {
 
 #[tracepoint(name = "sys_exit", category = "raw_syscalls")]
 pub fn sys_exit(ctx: TracePointContext) -> u32 {
-    let Ok(syscall_nr) = read_i64(&ctx, 8) else {
+    let syscall_nr = read_syscall_nr_or_invalid(&ctx);
+    if syscall_nr < 0 {
         return 1;
-    };
-    let Ok(ret) = read_i64(&ctx, 16) else {
+    }
+    let ret = read_syscall_ret_or_invalid(&ctx);
+    if ret == i64::MIN {
         return 1;
-    };
+    }
 
     let pid = current_pid();
     let tgid = current_tgid();
@@ -296,8 +301,53 @@ fn submit_event<T: Copy + 'static>(value: &T) -> u32 {
     }
 }
 
-fn read_i64(ctx: &TracePointContext, offset: usize) -> Result<i64, i64> {
-    unsafe { ctx.read_at::<i64>(offset) }
+#[inline(always)]
+fn is_plausible_syscall_nr(value: i64) -> bool {
+    (0..=8192).contains(&value)
+}
+
+#[inline(always)]
+fn read_syscall_nr_or_invalid(ctx: &TracePointContext) -> i64 {
+    if let Ok(value) = unsafe { ctx.read_at::<i64>(8) } {
+        if is_plausible_syscall_nr(value) {
+            return value;
+        }
+    }
+    if let Ok(value) = unsafe { ctx.read_at::<i32>(8) } {
+        let value = i64::from(value);
+        if is_plausible_syscall_nr(value) {
+            return value;
+        }
+    }
+    if let Ok(value) = unsafe { ctx.read_at::<i64>(16) } {
+        if is_plausible_syscall_nr(value) {
+            return value;
+        }
+    }
+    if let Ok(value) = unsafe { ctx.read_at::<i32>(16) } {
+        let value = i64::from(value);
+        if is_plausible_syscall_nr(value) {
+            return value;
+        }
+    }
+    -1
+}
+
+#[inline(always)]
+fn read_syscall_ret_or_invalid(ctx: &TracePointContext) -> i64 {
+    if let Ok(value) = unsafe { ctx.read_at::<i64>(16) } {
+        return value;
+    }
+    if let Ok(value) = unsafe { ctx.read_at::<i32>(16) } {
+        return i64::from(value);
+    }
+    if let Ok(value) = unsafe { ctx.read_at::<i64>(24) } {
+        return value;
+    }
+    if let Ok(value) = unsafe { ctx.read_at::<i32>(24) } {
+        return i64::from(value);
+    }
+    i64::MIN
 }
 
 #[inline(always)]
@@ -312,9 +362,10 @@ fn current_tgid() -> u32 {
 
 #[inline(always)]
 fn current_comm() -> [u8; COMM_LEN] {
-    // NOTE: keep verifier/codegen compatibility across toolchains used in CI and local hosts.
-    // Some LLVM/bpf-linker combinations reject aggregate-return helper calls for current_comm.
-    [0u8; COMM_LEN]
+    let mut comm = [0u8; COMM_LEN];
+    // SAFETY: We pass a valid writable buffer and its exact length.
+    let ret = unsafe { bpf_get_current_comm(comm.as_mut_ptr() as *mut c_void, COMM_LEN as u32) };
+    if ret == 0 { comm } else { [0u8; COMM_LEN] }
 }
 
 #[inline(always)]

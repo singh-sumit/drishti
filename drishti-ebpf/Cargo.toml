@@ -17,6 +17,7 @@ default = []
 
 [target.'cfg(target_arch = "bpf")'.dependencies]
 aya_ebpf = { package = "aya-ebpf", version = "0.1" }
+aya_ebpf_bindings = { package = "aya-ebpf-bindings", version = "0.1" }
 drishti-common = { path = "../drishti-common" }
 
 [lints.rust]

@@ -433,7 +433,11 @@ mod ebpf_runtime {
     use std::{mem, time::Duration};
 
     use anyhow::{Context, Result};
-    use aya::{Ebpf, maps::ring_buf::RingBuf, programs::TracePoint};
+    use aya::{
+        Ebpf,
+        maps::ring_buf::RingBuf,
+        programs::{ProgramError, TracePoint},
+    };
     use drishti_common::events::{
         CpuRuntimeEvent, CpuWaitEvent, DiskIoEvent, EventKind, NetTrafficEvent, OomKillEvent,
         ProcLifecycleEvent, SyscallEvent, TcpRetransmitEvent, TcpRttEvent,
@@ -479,12 +483,17 @@ mod ebpf_runtime {
             )?;
         }
 
-        if config.collectors.memory.track_oom {
-            if let Err(err) =
+        if config.collectors.memory.track_oom
+            && let Err(primary_err) =
                 attach_tracepoint(&mut bpf, "oom_kill_process", "oom", "oom_kill_process")
-            {
-                warn!(error = %err, "OOM tracepoint not available on this kernel");
-            }
+            && let Err(fallback_err) =
+                attach_tracepoint(&mut bpf, "oom_kill_process", "oom", "mark_victim")
+        {
+            warn!(
+                primary_error = %primary_err,
+                fallback_error = %fallback_err,
+                "OOM tracepoint not available on this kernel"
+            );
         }
 
         if config.collectors.network.enabled {
@@ -582,9 +591,11 @@ mod ebpf_runtime {
             .try_into()
             .with_context(|| format!("program {program_name} is not a tracepoint"))?;
 
-        program
-            .load()
-            .with_context(|| format!("failed to load program {program_name}"))?;
+        if let Err(err) = program.load()
+            && !matches!(err, ProgramError::AlreadyLoaded)
+        {
+            return Err(err).with_context(|| format!("failed to load program {program_name}"));
+        }
         program
             .attach(category, name)
             .with_context(|| format!("failed to attach {program_name} to {category}:{name}"))?;
